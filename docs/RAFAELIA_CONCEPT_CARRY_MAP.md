@@ -48,9 +48,10 @@ Este documento registra o entendimento operacional que deve acompanhar mudanças
 ## Política Android/NDK/ABI
 
 - O `targetSdkVersion` oficial do projeto permanece em **34** até a próxima rodada de validação Android moderno.
-- O piso `minSdkVersion` agora inicia em **28** para garantir que builds com `armeabi-v7a` não prometam suporte abaixo do mínimo pedido para ARM32.
+- O APK mantém `minSdkVersion=21` para não quebrar instalação/splits existentes; a política ARM32 API 28 é carregada no `BOOTSTRAP_INFO` do bootstrap local (`TERMUX_MIN_API=28` para `arm`).
 - O `compileSdkVersion` pode ser maior que o target para compilar APIs recentes sem mudar automaticamente as obrigações de runtime.
 - O `ndkVersion` deve continuar fixo/reprodutível por propriedade ou variável de ambiente controlada, nunca por descoberta implícita.
+- Os bootstraps RAFCODEΦ próprios são compilados por `scripts/build_rafaelia_bootstraps.sh` e usados por padrão em `scripts/prepare_bootstrap_env.sh`; use `RAF_BOOTSTRAP_SOURCE=upstream` apenas quando quiser validar os bootstraps upstream.
 - Se futuramente for necessário suportar ARM64 abaixo de 28 enquanto ARM32 fica em 28, criar flavors separados por ABI; não misturar promessa de manifest em um APK universal.
 
 ## Regras de implementação para não quebrar nada

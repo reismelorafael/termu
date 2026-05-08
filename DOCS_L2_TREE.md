@@ -23,7 +23,7 @@
   └─ ./scripts/diagnose.sh
 
 [Release Local]
-  ├─ eval "$(./scripts/prepare_bootstrap_env.sh --print-env)"
+  ├─ eval "$(./scripts/prepare_bootstrap_env.sh --print-env)"  # compila bootstraps RAFCODEΦ locais por padrão
   ├─ ./scripts/build_release_artifacts.sh
   └─ ./scripts/build_apk_matrix.sh
 
@@ -45,7 +45,8 @@
   ├─ dispatch runtime por capacidade
   ├─ fallback C seguro
   ├─ C/ASM otimizado quando disponível
-  └─ docs/RAFAELIA_CONCEPT_CARRY_MAP.md como contrato antes de tocar claims complexos
+  ├─ docs /RAFAELIA_CONCEPT_CARRY_MAP.md como contrato antes de tocar claims complexos
+  └─ scripts/build_rafaelia_bootstraps.sh antes do ASM incbin do APK
 ```
 
 ## Estado do que já está pronto (nível L)
