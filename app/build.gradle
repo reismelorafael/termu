@@ -35,7 +35,8 @@ android {
     def apkVersionTag = System.getenv("TERMUX_APK_VERSION_TAG") ?: ""
     def splitAPKsForDebugBuilds = System.getenv("TERMUX_SPLIT_APKS_FOR_DEBUG_BUILDS") ?: "1"
     def splitAPKsForReleaseBuilds = System.getenv("TERMUX_SPLIT_APKS_FOR_RELEASE_BUILDS") ?: "0" // F-Droid does not support split APKs #1904
-
+    def requestedReleaseBuild = gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") }
+    def baremetalStrictValue = System.getenv("TERMUX_BOOTSTRAP_BAREMETAL_STRICT") ?: (requestedReleaseBuild ? "true" : "false")
 
     defaultConfig {
         applicationId project.ext.appPackageName
@@ -53,7 +54,10 @@ android {
         buildConfigField "String", "BOOTSTRAP_BLAKE3_ARM", "\"" + project.ext.bootstrapBlake3Arm + "\""
         buildConfigField "String", "BOOTSTRAP_BLAKE3_I686", "\"" + project.ext.bootstrapBlake3I686 + "\""
         buildConfigField "String", "BOOTSTRAP_BLAKE3_X86_64", "\"" + project.ext.bootstrapBlake3X8664 + "\""
-        buildConfigField "boolean", "BOOTSTRAP_BAREMETAL_STRICT", "false"
+        buildConfigField "boolean", "BOOTSTRAP_BAREMETAL_STRICT", baremetalStrictValue
+
+        buildConfigField "int", "CONFIGURED_MIN_SDK", String.valueOf(project.properties.minSdkVersion.toInteger())
+        buildConfigField "String", "SUPPORTED_APK_ABIS", "\"" + project.findProperty('termux.abi.matrix').toString() + "\""
 
         manifestPlaceholders.TERMUX_PACKAGE_NAME = project.ext.appPackageName
         manifestPlaceholders.TERMUX_APP_NAME = "Termux RAFCODEΦ"
@@ -80,9 +84,25 @@ android {
             enable = ((gradle.startParameter.taskNames.any { it.contains("Debug") } && splitAPKsForDebugBuilds == "1") ||
                 (gradle.startParameter.taskNames.any { it.contains("Release") } && splitAPKsForReleaseBuilds == "1"))
             reset()
-            include 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
+            include(*(project.findProperty('termux.abi.matrix').toString().split(',') + project.findProperty('termux.abi.optional').toString().split(',')))
             universalApk = true
         }
+    }
+
+    def bootstrapBaremetalStrictEnv = System.getenv("TERMUX_BOOTSTRAP_BAREMETAL_STRICT")
+    def bootstrapBaremetalStrictOverride = null
+    if (bootstrapBaremetalStrictEnv != null && !bootstrapBaremetalStrictEnv.trim().isEmpty()) {
+        def normalized = bootstrapBaremetalStrictEnv.trim().toLowerCase(Locale.ROOT)
+        if (normalized == "true" || normalized == "1" || normalized == "yes" || normalized == "on") {
+            bootstrapBaremetalStrictOverride = true
+        } else if (normalized == "false" || normalized == "0" || normalized == "no" || normalized == "off") {
+            bootstrapBaremetalStrictOverride = false
+        } else {
+            throw new GradleException("Invalid TERMUX_BOOTSTRAP_BAREMETAL_STRICT='${bootstrapBaremetalStrictEnv}'. Use true/false.")
+        }
+    }
+    if (hasReleaseTaskRequested() && bootstrapBaremetalStrictOverride == false) {
+        throw new GradleException("Release tasks require TERMUX_BOOTSTRAP_BAREMETAL_STRICT=true. Disable is only allowed for debug/internal tracks.")
     }
 
     def releaseSigningEnabled = (System.getenv("TERMUX_ENABLE_RELEASE_SIGNING") ?: "false").toBoolean()
@@ -123,12 +143,14 @@ android {
             minifyEnabled true
             shrinkResources = false // Reproducible builds
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField "boolean", "BOOTSTRAP_BAREMETAL_STRICT", (bootstrapBaremetalStrictOverride != null ? bootstrapBaremetalStrictOverride : true).toString()
             if (useReleaseSigning) {
                 signingConfig signingConfigs.release
             }
         }
 
         debug {
+            buildConfigField "boolean", "BOOTSTRAP_BAREMETAL_STRICT", (bootstrapBaremetalStrictOverride != null ? bootstrapBaremetalStrictOverride : false).toString()
         }
     }
 
@@ -462,8 +484,14 @@ tasks.register("validateRewrittenBootstraps") {
                     def v = z.getInputStream(z.getEntry("BUILD_ONLY")).getText("UTF-8").trim()
                     if (v == "1") throw new GradleException("BUILD_ONLY=1 on ${arch}")
                 }
-                if (z.getEntry("bin/sh") == null) throw new GradleException("bin/sh missing on ${arch}")
-                if (z.getEntry("bin/pkg") == null) throw new GradleException("bin/pkg missing on ${arch}")
+                def shellCandidates = ["bin/sh", "usr/bin/sh", "bin/bash", "usr/bin/bash", "bin/dash", "usr/bin/dash"]
+                def pkgCandidates = ["bin/pkg", "usr/bin/pkg"]
+                if (!shellCandidates.any { z.getEntry(it) != null }) {
+                    throw new GradleException("No shell candidate found on ${arch}. Checked: ${shellCandidates.join(', ')}")
+                }
+                if (!pkgCandidates.any { z.getEntry(it) != null }) {
+                    throw new GradleException("No pkg candidate found on ${arch}. Checked: ${pkgCandidates.join(', ')}")
+                }
             } finally { z.close() }
         }
     }

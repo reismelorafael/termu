@@ -67,6 +67,22 @@ Quick how-to about Termux package management is available at [Package Management
 - Bootstraps obrigatórios e hashes BLAKE3 verificados antes de builds críticos.
 - Signing oficial é opt-in e separado da trilha unsigned interna de validação.
 
+
+## Canonical ABI Policy
+
+Fonte única oficial: `gradle.properties`.
+
+- `termux.abi.matrix=armeabi-v7a,arm64-v8a,x86_64` (ABIs obrigatórias)
+- `termux.abi.optional=x86` (ABI opcional de compatibilidade)
+- `termux.abi.universal=true` (universal APK quando gerado)
+
+Contratos:
+- `app/build.gradle` e `terminal-emulator/build.gradle` consomem essa política via `project.findProperty(...)`.
+- Scripts operacionais (`scripts/build_apk_matrix.sh`, `scripts/bootstrap_lowlevel_sync_check.sh`) validam ABIs obrigatórias a partir da mesma fonte.
+- CI valida consistência com `scripts/validate_abi_policy_consistency.sh`.
+
+> Histórico: documentos legados em `COMP/` podem conter políticas ABI antigas (ex.: arm64-only). Eles são referência histórica e não definem a política vigente.
+
 ## 🚀 Termux RAFCODEΦ - Android 15/16 Ready
 
 **This fork is fully compatible with Android 15/16 and can be installed side-by-side with official Termux.**
@@ -143,6 +159,15 @@ Release signing oficial é opcional e controlado por:
 - `TERMUX_RELEASE_KEYSTORE_PASSWORD`
 - `TERMUX_RELEASE_KEY_ALIAS`
 - `TERMUX_RELEASE_KEY_PASSWORD`
+
+### Contrato de trilhas de release (CI)
+
+| Trilha | Assinatura release (`armeabi-v7a`, `arm64-v8a`) | Unsigned permitido | Bloqueios |
+|---|---|---|---|
+| oficial | Obrigatória em `dist/apk-matrix/signed` | Não | Falha se faltar APK assinado por ABI, se houver release unsigned, se hash/nome divergirem de `SHA256SUMS.txt`, ou se `BOOTSTRAP_BAREMETAL_STRICT!=true`. |
+| interna | Obrigatória em `dist/apk-matrix/signed` | Sim, apenas para validação explícita em `dist/apk-matrix/unsigned` | Falha se nomes de signed/unsigned violarem contrato ou se hashes não baterem com `SHA256SUMS.txt`. |
+
+Validação única de contrato executada por `./gradlew verifyReleaseContract` antes de qualquer upload de artefato no workflow `apk_matrix_build.yml`.
 
 O módulo nativo mantém dispatch runtime com fallback C seguro para ARM32/ARM64 quando NEON ASM não estiver disponível em runtime.
 

@@ -281,6 +281,13 @@ jobs:
           echo "Gradle Task: $GRADLE_TASK"
           echo ""
           
+          # Materialize required bootstrap archives deterministically before assemble.
+          if ! ./gradlew :app:downloadBootstraps \
+              --no-daemon \
+              --warning-mode all; then
+            exit_on_error "❌ Bootstrap download/prep failed for ARM64 Android 15"
+          fi
+
           # Build with focus on arm64
           if ! ./gradlew $GRADLE_TASK \
               -Pandroid.injected.build.abi=arm64-v8a \
