@@ -1,0 +1,14 @@
+name: abi-policy-consistency
+
+on:
+  pull_request:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate canonical ABI policy consistency
+        run: ./scripts/validate_abi_policy_consistency.sh

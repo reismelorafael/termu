@@ -57,6 +57,7 @@ final class BootstrapBaremetalGuard {
         } else {
             Logger.logInfo(LOG_TAG, "selftest ok payload=" + json);
         }
+        Logger.logInfo(LOG_TAG, "bootstrap-guard phase=selftest status=ok payload=" + json);
     }
 
     static void validateAfterBootstrap(String prefix) {
@@ -81,14 +82,21 @@ final class BootstrapBaremetalGuard {
             json = readBufferString();
         }
         if (rc < 0) {
-            String msg = "Guard validation failed rc=" + rc + " payload=" + json;
-            if (BuildConfig.BOOTSTRAP_BAREMETAL_STRICT) {
-                throw new RuntimeException(msg);
-            }
-            Logger.logWarn(LOG_TAG, msg + " (non-blocking beta)");
+            handleStrictFailure("validatePrefix", "critical native return rc=" + rc + " payload=" + json, null);
             return;
         }
-        Logger.logInfo(LOG_TAG, "Guard validation OK payload=" + json);
+        Logger.logInfo(LOG_TAG, "bootstrap-guard phase=validatePrefix status=ok payload=" + json);
+    }
+
+    private static void handleStrictFailure(String phase, String cause, Throwable error) {
+        String message = "bootstrap-guard phase=" + phase + " status=failed cause=" + cause;
+        if (error != null && error.getMessage() != null && !error.getMessage().isEmpty()) {
+            message += " detail=" + error.getMessage();
+        }
+        if (BuildConfig.BOOTSTRAP_BAREMETAL_STRICT) {
+            throw new RuntimeException(message, error);
+        }
+        Logger.logWarn(LOG_TAG, message + " strict=false");
     }
 
     private static void clearBuffer() {

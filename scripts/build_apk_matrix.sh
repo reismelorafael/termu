@@ -15,6 +15,7 @@ info() { printf '\n[build_apk_matrix] %s\n' "$*"; }
 fail() { printf '\n[build_apk_matrix] ERROR: %s\n' "$*" >&2; exit 1; }
 
 cd "${ROOT_DIR}"
+source "${ROOT_DIR}/scripts/abi_policy_lib.sh"
 
 info "Provisioning Android SDK/NDK/CMake"
 ./scripts/setup_android_toolchain.sh
@@ -39,10 +40,11 @@ TERMUX_SPLIT_APKS_FOR_DEBUG_BUILDS=1 TERMUX_SPLIT_APKS_FOR_RELEASE_BUILDS=1 ./gr
 cp app/build/outputs/apk/debug/*.apk "${UNSIGNED_DIR}/"
 cp app/build/outputs/apk/release/*.apk "${UNSIGNED_DIR}/"
 
-arm64_count=$(find "${UNSIGNED_DIR}" -maxdepth 1 -type f -name '*arm64-v8a*.apk' | wc -l | tr -d ' ')
-arm32_count=$(find "${UNSIGNED_DIR}" -maxdepth 1 -type f -name '*armeabi-v7a*.apk' | wc -l | tr -d ' ')
-[[ "${arm64_count}" -gt 0 ]] || fail "arm64-v8a APK was not generated"
-[[ "${arm32_count}" -gt 0 ]] || fail "armeabi-v7a APK was not generated"
+required_abis=( $(abi_policy_required_array) )
+for abi in "${required_abis[@]}"; do
+  count=$(find "${UNSIGNED_DIR}" -maxdepth 1 -type f -name "*${abi}*.apk" | wc -l | tr -d ' ')
+  [[ "${count}" -gt 0 ]] || fail "${abi} APK was not generated"
+done
 
 if [[ "${KEYSTORE_PATH}" == "${DEFAULT_KEYSTORE_PATH}" ]]; then
   info "Preparing local validation signing material"
@@ -69,10 +71,11 @@ while IFS= read -r -d '' apk; do
   echo "signed: ${signed_apk}"
 done < <(find "${UNSIGNED_DIR}" -maxdepth 1 -type f -name '*release*.apk' -print0)
 
-signed_arm64_count=$(find "${SIGNED_DIR}" -maxdepth 1 -type f -name '*arm64-v8a*-signed.apk' | wc -l | tr -d ' ')
-signed_arm32_count=$(find "${SIGNED_DIR}" -maxdepth 1 -type f -name '*armeabi-v7a*-signed.apk' | wc -l | tr -d ' ')
-[[ "${signed_arm64_count}" -gt 0 ]] || fail "signed arm64-v8a release APK missing"
-[[ "${signed_arm32_count}" -gt 0 ]] || fail "signed arm32-v7a release APK missing"
+declare -A signed_counts=()
+for abi in "${required_abis[@]}"; do
+  signed_counts[$abi]=$(find "${SIGNED_DIR}" -maxdepth 1 -type f -name "*${abi}*-signed.apk" | wc -l | tr -d ' ')
+  [[ "${signed_counts[$abi]}" -gt 0 ]] || fail "signed ${abi} release APK missing"
+done
 
 ( cd "${OUT_DIR}" && find unsigned signed -type f -name '*.apk' -print0 | xargs -0 sha256sum > SHA256SUMS.txt )
 
@@ -91,7 +94,7 @@ done < <(find "${OUT_DIR}" -type f -name '*.apk' -print0)
 
 DIFF_REPORT="${OUT_DIR}/APK_SIZE_DIFF_RELEASE.tsv"
 printf 'abi\tunsigned_apk\tunsigned_size_bytes\tsigned_apk\tsigned_size_bytes\tdelta_bytes\n' > "${DIFF_REPORT}"
-for abi in armeabi-v7a arm64-v8a universal; do
+for abi in "${required_abis[@]}" universal; do
   uapk="$(find "${UNSIGNED_DIR}" -maxdepth 1 -type f -name "*release*${abi}*.apk" | head -n1 || true)"
   sapk="$(find "${SIGNED_DIR}" -maxdepth 1 -type f -name "*release*${abi}*-signed.apk" | head -n1 || true)"
   if [[ -n "$uapk" && -n "$sapk" ]]; then
@@ -106,7 +109,7 @@ done
   echo "artifact_dir=${OUT_DIR}";
   echo "generated_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)";
   echo "signing_keystore=$(basename "${KEYSTORE_PATH}")";
-  echo "signed_release_apks=${signed_arm64_count}+${signed_arm32_count} (arm64+arm32 validated)";
+  echo "signed_release_apks_required=$(printf "%s " "${required_abis[@]}")";
   find unsigned signed -type f -name '*.apk' | sort;
 } > ARTIFACT_MANIFEST.txt )
 info "Artifacts generated in ${OUT_DIR}"

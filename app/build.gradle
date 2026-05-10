@@ -81,9 +81,25 @@ android {
             enable = ((gradle.startParameter.taskNames.any { it.contains("Debug") } && splitAPKsForDebugBuilds == "1") ||
                 (gradle.startParameter.taskNames.any { it.contains("Release") } && splitAPKsForReleaseBuilds == "1"))
             reset()
-            include 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a'
+            include(*(project.findProperty('termux.abi.matrix').toString().split(',') + project.findProperty('termux.abi.optional').toString().split(',')))
             universalApk = true
         }
+    }
+
+    def bootstrapBaremetalStrictEnv = System.getenv("TERMUX_BOOTSTRAP_BAREMETAL_STRICT")
+    def bootstrapBaremetalStrictOverride = null
+    if (bootstrapBaremetalStrictEnv != null && !bootstrapBaremetalStrictEnv.trim().isEmpty()) {
+        def normalized = bootstrapBaremetalStrictEnv.trim().toLowerCase(Locale.ROOT)
+        if (normalized == "true" || normalized == "1" || normalized == "yes" || normalized == "on") {
+            bootstrapBaremetalStrictOverride = true
+        } else if (normalized == "false" || normalized == "0" || normalized == "no" || normalized == "off") {
+            bootstrapBaremetalStrictOverride = false
+        } else {
+            throw new GradleException("Invalid TERMUX_BOOTSTRAP_BAREMETAL_STRICT='${bootstrapBaremetalStrictEnv}'. Use true/false.")
+        }
+    }
+    if (hasReleaseTaskRequested() && bootstrapBaremetalStrictOverride == false) {
+        throw new GradleException("Release tasks require TERMUX_BOOTSTRAP_BAREMETAL_STRICT=true. Disable is only allowed for debug/internal tracks.")
     }
 
     def releaseSigningEnabled = (System.getenv("TERMUX_ENABLE_RELEASE_SIGNING") ?: "false").toBoolean()
@@ -124,12 +140,14 @@ android {
             minifyEnabled true
             shrinkResources = false // Reproducible builds
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField "boolean", "BOOTSTRAP_BAREMETAL_STRICT", (bootstrapBaremetalStrictOverride != null ? bootstrapBaremetalStrictOverride : true).toString()
             if (useReleaseSigning) {
                 signingConfig signingConfigs.release
             }
         }
 
         debug {
+            buildConfigField "boolean", "BOOTSTRAP_BAREMETAL_STRICT", (bootstrapBaremetalStrictOverride != null ? bootstrapBaremetalStrictOverride : false).toString()
         }
     }
 
