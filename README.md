@@ -67,6 +67,22 @@ Quick how-to about Termux package management is available at [Package Management
 - Bootstraps obrigatórios e hashes BLAKE3 verificados antes de builds críticos.
 - Signing oficial é opt-in e separado da trilha unsigned interna de validação.
 
+
+## Canonical ABI Policy
+
+Fonte única oficial: `gradle.properties`.
+
+- `termux.abi.matrix=armeabi-v7a,arm64-v8a,x86_64` (ABIs obrigatórias)
+- `termux.abi.optional=x86` (ABI opcional de compatibilidade)
+- `termux.abi.universal=true` (universal APK quando gerado)
+
+Contratos:
+- `app/build.gradle` e `terminal-emulator/build.gradle` consomem essa política via `project.findProperty(...)`.
+- Scripts operacionais (`scripts/build_apk_matrix.sh`, `scripts/bootstrap_lowlevel_sync_check.sh`) validam ABIs obrigatórias a partir da mesma fonte.
+- CI valida consistência com `scripts/validate_abi_policy_consistency.sh`.
+
+> Histórico: documentos legados em `COMP/` podem conter políticas ABI antigas (ex.: arm64-only). Eles são referência histórica e não definem a política vigente.
+
 ## 🚀 Termux RAFCODEΦ - Android 15/16 Ready
 
 **This fork is fully compatible with Android 15/16 and can be installed side-by-side with official Termux.**

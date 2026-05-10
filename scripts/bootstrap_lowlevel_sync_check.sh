@@ -10,6 +10,7 @@ fail(){ printf '[bootstrap-lowlevel-sync] ERROR: %s\n' "$*" >&2; exit 1; }
 [[ -f "${SPEC_FILE}" ]] || fail "Missing ${SPEC_FILE}."
 
 cd "${ROOT_DIR}"
+source "${ROOT_DIR}/scripts/abi_policy_lib.sh"
 
 required=(
   "scripts/prepare_bootstrap_env.sh"
@@ -39,9 +40,8 @@ if ! rg -q "SEÇÃO 1 — TIPOS PRIMITIVOS" "${SPEC_FILE}"; then
   fail "Spec section marker not found in BOOTSTRAP_LOWLEVEL_RAFAELIA.txt"
 fi
 
-# Ensure release matrix keeps both arm32+arm64 paths in official pipeline.
-rg -q "arm64-v8a" scripts/build_apk_matrix.sh || fail "arm64-v8a build path missing in scripts/build_apk_matrix.sh"
-rg -q "armeabi-v7a" scripts/build_apk_matrix.sh || fail "armeabi-v7a build path missing in scripts/build_apk_matrix.sh"
+# Ensure release matrix follows canonical ABI policy.
+rg -q "abi_policy_required_array" scripts/build_apk_matrix.sh || fail "build_apk_matrix.sh must consume canonical ABI policy"
 
 if [[ "$missing" -ne 0 ]]; then
   fail "Lowlevel bootstrap references are out of sync."
