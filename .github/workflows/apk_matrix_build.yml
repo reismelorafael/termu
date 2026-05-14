@@ -170,24 +170,24 @@ jobs:
             !dist/apk-matrix/unsigned/*debug*armeabi-v7a*.apk
           if-no-files-found: error
 
-      - name: Upload unsigned release arm64 APK
-        if: ${{ inputs.upload_unsigned_release_arm64 }}
+      - name: Upload unsigned release arm64 APK (internal track only)
+        if: ${{ inputs.release_track == 'internal' && inputs.upload_unsigned_release_arm64 }}
         uses: actions/upload-artifact@v4
         with:
           name: termux-unsigned-release-arm64-v8a-${{ github.sha }}
           path: dist/apk-matrix/unsigned/*release*arm64-v8a*.apk
           if-no-files-found: error
 
-      - name: Upload unsigned release arm32 APK
-        if: ${{ inputs.upload_unsigned_release_arm32 }}
+      - name: Upload unsigned release arm32 APK (internal track only)
+        if: ${{ inputs.release_track == 'internal' && inputs.upload_unsigned_release_arm32 }}
         uses: actions/upload-artifact@v4
         with:
           name: termux-unsigned-release-armeabi-v7a-${{ github.sha }}
           path: dist/apk-matrix/unsigned/*release*armeabi-v7a*.apk
           if-no-files-found: error
 
-      - name: Upload unsigned release universal APK
-        if: ${{ inputs.upload_unsigned_release_universal }}
+      - name: Upload unsigned release universal APK (internal track only)
+        if: ${{ inputs.release_track == 'internal' && inputs.upload_unsigned_release_universal }}
         uses: actions/upload-artifact@v4
         with:
           name: termux-unsigned-release-universal-${{ github.sha }}

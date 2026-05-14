@@ -133,11 +133,29 @@ String benchmark = InternalPrograms.runBenchmark();
 
 ## Building
 
-The module is built automatically as part of the Termux app build process:
+The low-level module is built as part of the app APK pipeline and follows the same ABI/signing contract used by CI.
+
+### Local debug build
 
 ```bash
-./gradlew assembleDebug
+./gradlew :app:assembleDebug
 ```
+
+### Local signed + unsigned release validation (arm32 + arm64 + universal)
+
+```bash
+./scripts/build_apk_matrix.sh
+```
+
+Artifacts are generated under `dist/apk-matrix/`:
+- `unsigned/`: debug + release unsigned APKs
+- `signed/`: release APKs signed with local validation keystore (or official keystore when explicitly provided)
+- `APK_SIZE_REPORT.tsv`, `APK_SIZE_DIFF_RELEASE.tsv`, `SHA256SUMS.txt`, `ARTIFACT_MANIFEST.txt`
+
+### Official release track rule
+
+- Official release track must keep signed release artifacts as source of truth.
+- Unsigned release APK upload is internal-validation only and is blocked for official track in CI workflow `apk_matrix_build.yml`.
 
 The native library is compiled with:
 - **Optimization Level**: `-Os` (size optimization)
