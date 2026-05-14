@@ -234,6 +234,7 @@ Uso:
 - Relatório do legado RAFAELIA: [rafaelia/old/AUDITORIA.md](./rafaelia/old/AUDITORIA.md)
 - Mapa absoluto de markdowns: [docs/MARKDOWN_MAPA_ABSOLUTO.md](./docs/MARKDOWN_MAPA_ABSOLUTO.md)
 - Revisão completa de markdowns: [docs/REVISAO_COMPLETA_MARKDOWN.md](./docs/REVISAO_COMPLETA_MARKDOWN.md)
+- Top 10 MD (código ↔ documentação): [docs/TOP10_CODE_DOC_GAPS_2026-05.md](./docs/TOP10_CODE_DOC_GAPS_2026-05.md)
 
 ***
 
