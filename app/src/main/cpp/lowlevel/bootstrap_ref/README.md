@@ -15,3 +15,8 @@ Arquivos gerados:
 - `rafaelia_abi_header.txt`
 - `bootstrap_arm64_adaptive.s.txt`
 - `bootstrap_arm32_adaptive.s.txt`
+
+
+## Auditoria formal
+
+- `bootstrap_arm64_adaptive.audit.md`: contrato de registradores, riscos conhecidos e plano de correção antes da promoção para `.S` compilável.
