@@ -30,6 +30,9 @@ Este documento consolida a trilha oficial de build/release/CI do repositório em
 - Toda alteração de SDK/NDK deve ocorrer em `gradle.properties`.
 - Toda alteração de bootstrap de toolchain deve ocorrer em `scripts/setup_android_toolchain.sh`.
 - Workflows devem chamar o script de bootstrap, e não reimplementar parsing de propriedades.
+- `Arme/Add/` é estritamente **staging** e não compõe release oficial sem promoção.
+- Promoção de artefatos `Arme/*` para código canônico deve passar por `scripts/promote_arme_module.sh` com trilha de auditoria.
+- CI deve bloquear novos `.c/.S/.h` em `Arme/Add/` sem item correspondente em `Arme/manifest.json`.
 
 ## Execução Local (baseline)
 
