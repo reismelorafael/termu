@@ -87,7 +87,7 @@ jobs:
       matrix:
         include: ${{ fromJson(needs.detect-and-prepare.outputs.build-matrix) }}
     outputs:
-      apk-path-${{ matrix.arch }}: ${{ steps.build.outputs.apk-path }}
+      apk-path:${{ matrix.arch }}: ${{ steps.build.outputs.apk-path }}
     
     steps:
       - uses: actions/checkout@v4
