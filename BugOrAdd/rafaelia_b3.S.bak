@@ -75,7 +75,7 @@ g_worker_idx: .space 4
 
 _start:
     ldr     r0, =msg_b3_boot
-    ldr r1, =msg_b3_boot_len
+    mov     r1, #msg_b3_boot_len
     bl      ws3
 
     @ build CRC table
@@ -156,7 +156,7 @@ _start:
 
     @ imprime "W:N"
     ldr     r0, =msg_worker
-    ldr r1, =msg_worker_len
+    mov     r1, #msg_worker_len
     bl      ws3
 
     mov     r0, r8
@@ -202,7 +202,7 @@ _start:
 
     push    {r0}
     ldr     r0, =msg_tput
-    ldr r1, =msg_tput_len
+    mov     r1, #msg_tput_len
     bl      ws3
     pop     {r0}
     bl      print_hex32_b3
@@ -219,13 +219,13 @@ _start:
 
     push    {r0}
     ldr     r0, =msg_crc
-    ldr r1, =msg_crc_len
+    mov     r1, #msg_crc_len
     bl      ws3
     pop     {r0}
     bl      print_hex32_b3
 
     ldr     r0, =msg_done3
-    ldr r1, =msg_done3_len
+    mov     r1, #msg_done3_len
     bl      ws3
 
     mov     r7, #SYS_EXIT
@@ -245,7 +245,7 @@ fill_fib3:
     cmp     r0, r5
     bge     .Bfib_done
     add     r2, r6, r7
-    uxth r2, r2
+    and     r2, r2, #0xFFFF
     strh    r2, [r4, r0]
     mov     r6, r7
     mov     r7, r2
