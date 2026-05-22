@@ -254,8 +254,8 @@ final class TermuxInstaller {
                         throw new RuntimeException("Bootstrap missing required package manager: " + TERMUX_STAGING_PREFIX_DIR_PATH + "/bin/pkg");
                     }
                     verifyRuntimeBinary(TERMUX_STAGING_PREFIX_DIR_PATH + "/bin/sh", "sh");
-                    verifyRuntimeBinary(TERMUX_STAGING_PREFIX_DIR_PATH + "/bin/busybox", "busybox");
-                    verifyRuntimeBinary(TERMUX_STAGING_PREFIX_DIR_PATH + "/bin/proot", "proot");
+                    verifyRuntimeBinary(TERMUX_STAGING_PREFIX_DIR_PATH + "/bin/busybox", "busybox", false);
+                    verifyRuntimeBinary(TERMUX_STAGING_PREFIX_DIR_PATH + "/bin/proot", "proot", false);
 
                     Logger.logInfo(LOG_TAG, "Moving termux prefix staging to prefix directory.");
 
@@ -501,9 +501,15 @@ final class TermuxInstaller {
     }
 
     private static void verifyRuntimeBinary(String path, String binaryName) {
+        verifyRuntimeBinary(path, binaryName, true);
+    }
+
+    private static void verifyRuntimeBinary(String path, String binaryName, boolean required) {
         try {
             if (!FileUtils.fileExists(path, false)) {
-                throw new RuntimeException("Runtime binary verification failed: missing " + binaryName + " at " + path);
+                if (required) throw new RuntimeException("Runtime binary verification failed: missing " + binaryName + " at " + path);
+                Logger.logInfo(LOG_TAG, "Optional runtime binary not present: " + binaryName + " (" + path + ")");
+                return;
             }
             StructStat stat = Os.stat(path);
             if ((stat.st_mode & 0100) == 0) {
