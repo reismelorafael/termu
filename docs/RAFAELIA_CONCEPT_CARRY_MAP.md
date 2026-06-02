@@ -17,7 +17,6 @@ Este documento registra o entendimento operacional que deve acompanhar mudanças
 9. `scripts/README_RAFAELIA_PROTOCOL.md` — como scripts devem se comportar com validação, logs e previsibilidade.
 10. `docs/android-target-migration.md` — política de SDK/target, permissões e riscos Android moderno.
 11. `docs/RAFAELIA_SESSION_TRUTH_NAVIGATION.md` — navegação da sessão ampla: token vazio, fato versus hipótese, parábolas didáticas, 7 direções e ciclos de mitigação.
-12. `docs/RAFAELIA_CLAIM_EXECUTION_MATRIX.md` — matriz executável de promoção por evidência, falsificação e rollback para sementes/claims RAFAELIA.
 
 ## O que deve ser carregado como conhecimento
 

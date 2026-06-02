@@ -105,7 +105,6 @@ Este documento serve como índice mestre de toda a documentação do projeto Ter
 | [docs/RAFAELIA_CONCEPT_CARRY_MAP.md](docs/RAFAELIA_CONCEPT_CARRY_MAP.md) | Contrato de leitura dos conceitos toroidais, 42 ciclos, Hz/memória, multilíngue e política SDK/ABI | IA/Desenvolvedores |
 | [docs/RAFAELIA_SESSION_TRUTH_NAVIGATION.md](docs/RAFAELIA_SESSION_TRUTH_NAVIGATION.md) | Navegação para sessões amplas: verdade operacional, token vazio, metáforas como parábolas, ciclos Ω/β e promoção por evidência | IA/Desenvolvedores |
 | [docs/RAFAELIA_5_LEVEL_DOCUMENTATION_NAVIGATION.md](docs/RAFAELIA_5_LEVEL_DOCUMENTATION_NAVIGATION.md) | Catálogo Markdown/TXT até 5 níveis por domínio e profundidade, sem mover arquivos existentes | IA/Desenvolvedores |
-| [docs/RAFAELIA_CLAIM_EXECUTION_MATRIX.md](docs/RAFAELIA_CLAIM_EXECUTION_MATRIX.md) | Matriz claim → arquivo → teste → status → falsificação → rollback para sementes RAFAELIA | IA/Desenvolvedores |
 | [docs/RAFAELIA_CROSS_ARCH_CORRECTION_MATRIX.md](docs/RAFAELIA_CROSS_ARCH_CORRECTION_MATRIX.md) | Matriz de correção para laboratório multi-arquitetura sem acoplar ao APK | Desenvolvedores low-level |
 
 ### Subdiretório `/docs/rafaelia/`

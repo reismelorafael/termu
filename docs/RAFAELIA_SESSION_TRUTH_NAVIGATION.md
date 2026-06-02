@@ -136,6 +136,6 @@ As direções reversas partem do resultado desejado e voltam para as condições
 
 1. Usar `docs/RAFAELIA_5_LEVEL_DOCUMENTATION_NAVIGATION.md` como inventário automático de Markdown/TXT em até 5 níveis e comparar com índices existentes.
 2. Marcar documentos por domínio: build, Android, low-level, matemática, segurança, mercado, arquivo solto e manifesto.
-3. Manter `docs/RAFAELIA_CLAIM_EXECUTION_MATRIX.md` e `reports/rafaelia_claim_execution_matrix.csv` como matriz `claim -> arquivo -> teste -> status -> falsificação -> rollback`.
-4. Validar os scripts oficiais `./run_tests.sh` e `./build.sh` quando o ambiente tiver JDK/Gradle compatível e bootstrap BLAKE3 configurado.
+3. Criar uma matriz `claim -> arquivo -> teste -> status` para impedir promoção sem evidência.
+4. Validar os scripts oficiais `./run_tests.sh` e `./build.sh` quando o ambiente tiver toolchain completo.
 5. Manter esta página como entrada para prompts futuros que sejam amplos, simbólicos ou sem tema técnico fechado.
