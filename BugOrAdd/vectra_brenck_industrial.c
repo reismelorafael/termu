@@ -120,6 +120,11 @@ static void basic_stats(u32 *arr, int n, f64 *mean, f64 *stddev, u32 *min, u32 *
 }
 
 /* ---------- matriz triangular superior de diferenças ---------- */
+static int _cmp_f64(const void *a, const void *b) {
+    double x = *(const double *)a, y = *(const double *)b;
+    return (x > y) - (x < y);
+}
+
 typedef struct {
     f64 mean_diff;      /* média das diferenças absolutas (triangular superior) */
     f64 median_diff;
@@ -143,11 +148,7 @@ static TriDiffStats triangular_diff_stats(u32 *arr, int n) {
     for (int i = 0; i < total; i++) sum += diffs[i];
     ts.mean_diff = sum / total;
     /* mediana */
-    qsort(diffs, total, sizeof(f64), 
-          (int(*)(const void*,const void*)) ([](const void *a, const void *b) {
-              f64 x = *(f64*)a, y = *(f64*)b;
-              return (x > y) - (x < y);
-          }));
+    qsort(diffs, total, sizeof(f64), _cmp_f64);
     ts.median_diff = (total % 2) ? diffs[total/2] : (diffs[total/2-1] + diffs[total/2]) / 2.0;
     ts.max_diff = diffs[total-1];
     ts.min_diff = diffs[0];
