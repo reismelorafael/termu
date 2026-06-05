@@ -13,7 +13,7 @@
 #define EXEC_BUF_SIZE (1024 * 1024)
 
 typedef struct {
-    const char *name;
+    char *name;   /* strdup'd — must be free'd via link_cleanup */
     u32 offset;
     u32 defined;
 } Symbol;
@@ -32,6 +32,16 @@ static void link_init(LinkContext *ctx, const u8 *bytecode, u32 len) {
     ctx->bytecode_len = len;
     ctx->out_len = 0;
     ctx->symbol_count = 0;
+    ctx->out_buf = NULL;
+}
+
+static void link_cleanup(LinkContext *ctx) {
+    for (u32 i = 0; i < ctx->symbol_count; i++) {
+        free(ctx->symbols[i].name);
+        ctx->symbols[i].name = NULL;
+    }
+    ctx->symbol_count = 0;
+    free(ctx->out_buf);
     ctx->out_buf = NULL;
 }
 
@@ -88,7 +98,7 @@ static i32 link_run(LinkContext *ctx) {
         if (prime == FLAG_BRANCH) {
             const char *name = (const char*)(pc + 4);
             u32 target = link_find_symbol(ctx, name);
-            if (target == 0xFFFFFFFF) { free(ctx->out_buf); return -1; }
+            if (target == 0xFFFFFFFF) { link_cleanup(ctx); return -1; }
             i32 offset = (i32)(target - ((u32)(bp - ctx->out_buf) + 4));
             /* Corrige os bytes da instrução (branch Thumb) */
             bp[0] = pc[0]; bp[1] = pc[1];
@@ -133,9 +143,10 @@ int main(void) {
         } else {
             perror("mprotect");
         }
-        free(ctx.out_buf);
+        link_cleanup(&ctx);
     } else {
         fprintf(stderr, "Link falhou\n");
+        link_cleanup(&ctx);
     }
     return 0;
 }
