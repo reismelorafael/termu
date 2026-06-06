@@ -44,8 +44,9 @@ def classify(row: dict[str, str], code: int) -> str:
     return "OPEN_EVIDENCE"
 
 
-def run_row(row: dict[str, str]) -> Result:
-    command = row["executable_check"]
+def execute_command(command: str, cache: dict[str, tuple[int, str, str]]) -> tuple[int, str, str]:
+    if command in cache:
+        return cache[command]
     try:
         proc = subprocess.run(
             command,
@@ -56,13 +57,16 @@ def run_row(row: dict[str, str]) -> Result:
             stderr=subprocess.PIPE,
             timeout=TIMEOUT_SECONDS,
         )
-        code = proc.returncode
-        out = proc.stdout
-        err = proc.stderr
+        result = (proc.returncode, proc.stdout, proc.stderr)
     except subprocess.TimeoutExpired as exc:
-        code = 124
-        out = exc.stdout or ""
-        err = exc.stderr or f"timeout after {TIMEOUT_SECONDS}s"
+        result = (124, exc.stdout or "", exc.stderr or f"timeout after {TIMEOUT_SECONDS}s")
+    cache[command] = result
+    return result
+
+
+def run_row(row: dict[str, str], cache: dict[str, tuple[int, str, str]]) -> Result:
+    command = row["executable_check"]
+    code, out, err = execute_command(command, cache)
     return Result(
         claim_id=row["claim_id"],
         status=row["status"],
@@ -109,7 +113,8 @@ def write_reports(results: list[Result]) -> None:
 def main() -> int:
     if not MATRIX.exists():
         raise SystemExit(f"missing matrix: {MATRIX.relative_to(ROOT)}")
-    results = [run_row(row) for row in load_rows()]
+    cache: dict[str, tuple[int, str, str]] = {}
+    results = [run_row(row, cache) for row in load_rows()]
     write_reports(results)
     hard_fail = [item for item in results if item.outcome == "FAIL"]
     print(f"RAFAELIA claim checks executed: {len(results)}")
