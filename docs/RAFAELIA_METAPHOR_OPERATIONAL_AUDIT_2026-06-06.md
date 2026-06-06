@@ -106,19 +106,21 @@ A sequência simbólica é tratada como uma assinatura de método, não como fó
 
 ## Entrega enterprise funcional possível agora
 
-A entrega segura neste momento é documental e operacional: um mapa de auditoria que converte linguagem simbólica em gates técnicos. Ela não altera hot path, não toca assembly, não adiciona heap e não declara certificação externa.
+A entrega segura neste momento agora possui uma parte executável: `scripts/validate_vectra_invariants.py` lê `reports/vectra_invariant_matrix.csv` e gera `reports/vectra_invariant_results.md`/`.json`. A checagem é estática e referenciada: não infere verdade a partir de metáfora; cada linha aponta arquivo, padrão, artefato e mitigação.
 
-Para transformar isto em entrega fullstack expandida, a próxima etapa deve criar uma matriz automatizável:
+Ela não altera hot path, não toca assembly, não adiciona heap e não declara certificação externa. A função é bloquear drift nas invariantes mínimas antes de qualquer patch low-level.
+
+A matriz de claim expandida permanece como próxima camada fullstack:
 
 ```text
 claim_id | camada | arquivo | teste | status | risco | rollback | owner
 ```
 
-Essa matriz permitiria dashboards, CI gates, auditoria de release, relatórios enterprise e trilha de evidência sem depender de interpretação subjetiva.
+Essa matriz permite dashboards, CI gates, auditoria de release, relatórios enterprise e trilha de evidência sem depender de interpretação subjetiva.
 
 ## Próximos passos recomendados
 
-1. Criar `docs/RAFAELIA_CLAIM_EVIDENCE_MATRIX.csv` com claims críticos e testes esperados.
+1. Promover `reports/vectra_invariant_matrix.csv` para CI obrigatório e ampliar a matriz de claims críticos com testes esperados.
 2. Rodar `./run_tests.sh` em ambiente com Gradle/Android configurado e registrar logs completos.
 3. Rodar `./build.sh` em ambiente com NDK r26+ e validar page size `16384`.
 4. Priorizar os bugs conhecidos do `AGENTS.md` sem fechá-los por documentação.
