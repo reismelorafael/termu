@@ -8,9 +8,9 @@ Use este arquivo junto com `docs/RAFAELIA_SESSION_TRUTH_NAVIGATION.md`: este map
 
 ## Resumo quantitativo
 
-- Total de arquivos Markdown/TXT até 5 níveis: **261**.
+- Total de arquivos Markdown/TXT até 5 níveis: **262**.
 - Nível de profundidade 1: **65** arquivos.
-- Nível de profundidade 2: **160** arquivos.
+- Nível de profundidade 2: **161** arquivos.
 - Nível de profundidade 3: **25** arquivos.
 - Nível de profundidade 4: **9** arquivos.
 - Nível de profundidade 5: **2** arquivos.
@@ -25,7 +25,7 @@ Use este arquivo junto com `docs/RAFAELIA_SESSION_TRUTH_NAVIGATION.md`: este map
 | low-level/arm | 37 | `Arme/Add/Devem.md`, `Arme/Add/RAFAELIA_ARKRAF_MASTER.txt`, `Arme/Add/RAFAELIA_CODEX_POLIMATA.txt`, `Arme/Add/RAFAELIA_MASTER_DOC.txt`, ... |
 | matemática/vectra | 6 | `BugOrAdd/RAFAELIA_MATH_FORMULAS.md`, `docs/RAFAELIA_VECTRAS_BIT_CONVERGENCE.md`, `docs/rafaelia/FORMULAS_RAFAELIA_INDEX.md`, `reports/vectra_integration_report.md`, ... |
 | mercado/dados | 1 | `ANALISE_MERCADO.md` |
-| segurança/auditoria | 28 | `ANDROID15_AUDIT_REPORT.md`, `AUDITORIA.md`, `AUDITORIA_TAREFAS.md`, `COMP/AUDITORIA BRECHA E COMPILAR PARA ASM.MD`, ... |
+| segurança/auditoria | 29 | `ANDROID15_AUDIT_REPORT.md`, `AUDITORIA.md`, `AUDITORIA_TAREFAS.md`, `COMP/AUDITORIA BRECHA E COMPILAR PARA ASM.MD`, ... |
 | testes/benchmark | 11 | `BENCHMARKS_COMPARISON.md`, `VALIDATION_COMMANDS.md`, `VALIDATION_COMMANDS_RMRV2.md`, `docs/BETA_RUNTIME_TEST_PLAN.md`, ... |
 
 ## Navegação por profundidade
@@ -248,6 +248,7 @@ Use este arquivo junto com `docs/RAFAELIA_SESSION_TRUTH_NAVIGATION.md`: este map
 - `reports/bootstrap_gap_report.md` — domínio: android/bootstrap; status: ARTIFACT
 - `reports/bootstrap_integrity.md` — domínio: android/bootstrap; status: ARTIFACT
 - `reports/debug_bootstrap_test.md` — domínio: android/bootstrap; status: ARTIFACT
+- `reports/duplicate_source_audit.md` — domínio: segurança/auditoria; status: ARTIFACT
 - `reports/external_integration_status.md` — domínio: conceito/manifesto/outros; status: ARTIFACT
 - `reports/rafaelia_claim_execution_results.md` — domínio: conceito/manifesto/outros; status: ARTIFACT
 - `reports/vectra_grade_benchmarks.md` — domínio: testes/benchmark; status: ARTIFACT

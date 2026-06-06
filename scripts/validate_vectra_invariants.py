@@ -98,9 +98,9 @@ def check_top42_names_match(row: dict[str, str]) -> tuple[bool, str]:
     return False, f"metric list length mismatch: csv={len(names_csv)}, json={len(names_json)}"
 
 
-def check_command_exit_code(row: dict[str, str]) -> tuple[bool, str]:
-    expected = int(row["expected"])
-    command = row["check_target"]
+def execute_command(command: str, cache: dict[str, tuple[int, str, str]]) -> tuple[int, str, str]:
+    if command in cache:
+        return cache[command]
     proc = subprocess.run(
         command,
         cwd=ROOT,
@@ -110,14 +110,23 @@ def check_command_exit_code(row: dict[str, str]) -> tuple[bool, str]:
         stderr=subprocess.PIPE,
         timeout=30,
     )
-    compact_out = " ".join(proc.stdout.split())
-    compact_err = " ".join(proc.stderr.split())
-    detail = f"exit={proc.returncode}, expected={expected}"
+    result = (proc.returncode, proc.stdout, proc.stderr)
+    cache[command] = result
+    return result
+
+
+def check_command_exit_code(row: dict[str, str], cache: dict[str, tuple[int, str, str]]) -> tuple[bool, str]:
+    expected = int(row["expected"])
+    command = row["check_target"]
+    code, stdout, stderr = execute_command(command, cache)
+    compact_out = " ".join(stdout.split())
+    compact_err = " ".join(stderr.split())
+    detail = f"exit={code}, expected={expected}"
     if compact_out:
         detail += f", stdout={compact_out[:220]}"
     if compact_err:
         detail += f", stderr={compact_err[:220]}"
-    return proc.returncode == expected, detail
+    return code == expected, detail
 
 
 def check_csv_code_backed_has_check(row: dict[str, str]) -> tuple[bool, str]:
@@ -143,13 +152,16 @@ CHECKS = {
 }
 
 
-def run_row(row: dict[str, str]) -> Result:
+def run_row(row: dict[str, str], cache: dict[str, tuple[int, str, str]]) -> Result:
     check_kind = row["check_kind"]
     if check_kind not in CHECKS:
         ok = False
         detail = f"unknown check kind: {check_kind}"
     else:
-        ok, detail = CHECKS[check_kind](row)
+        if check_kind == "command_exit_code":
+            ok, detail = CHECKS[check_kind](row, cache)
+        else:
+            ok, detail = CHECKS[check_kind](row)
     return Result(
         invariant_id=row["invariant_id"],
         invariant=row["invariant"],
@@ -193,7 +205,8 @@ def main() -> int:
     if not MATRIX.exists():
         raise SystemExit(f"missing matrix: {rel(MATRIX)}")
     rows = csv_rows(MATRIX)
-    results = [run_row(row) for row in rows]
+    cache: dict[str, tuple[int, str, str]] = {}
+    results = [run_row(row, cache) for row in rows]
     write_reports(results)
     failures = [item for item in results if item.outcome == "FAIL"]
     print(f"VECTRA invariant checks executed: {len(results)}")

@@ -106,7 +106,7 @@ A sequência simbólica é tratada como uma assinatura de método, não como fó
 
 ## Entrega enterprise funcional possível agora
 
-A entrega segura neste momento agora possui uma parte executável: `scripts/validate_vectra_invariants.py` lê `reports/vectra_invariant_matrix.csv` e gera `reports/vectra_invariant_results.md`/`.json`. A checagem é estática e referenciada: não infere verdade a partir de metáfora; cada linha aponta arquivo, padrão, artefato e mitigação.
+A entrega segura neste momento agora possui uma parte executável: `scripts/validate_vectra_invariants.py` lê `reports/vectra_invariant_matrix.csv` e gera `reports/vectra_invariant_results.md`/`.json`. A checagem é estática e referenciada: não infere verdade a partir de metáfora; cada linha aponta arquivo, padrão, artefato e mitigação. O hotfix de duplicidade adiciona `scripts/audit_duplicate_sources.py`, que registra cópias exatas de fontes/scripts em `reports/duplicate_source_audit.*` para evitar execução/build cego de cópias legadas.
 
 Ela não altera hot path, não toca assembly, não adiciona heap e não declara certificação externa. A função é bloquear drift nas invariantes mínimas antes de qualquer patch low-level.
 

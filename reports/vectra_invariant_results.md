@@ -5,7 +5,7 @@ It checks repository artifacts named in `reports/vectra_invariant_matrix.csv`; i
 
 ## Summary
 
-- PASS: 13
+- PASS: 14
 - FAIL: 0
 
 ## Results
@@ -25,3 +25,4 @@ It checks repository artifacts named in `reports/vectra_invariant_matrix.csv`; i
 | V11 | PASS | `csv_code_backed_has_check` on `reports/rafaelia_claim_execution_matrix.csv` | `all` | all CODE_BACKED rows have executable checks | Demote claim or add executable check before promotion. |
 | V12 | PASS | `regex_exists` on `docs/RAFAELIA_CONCEPT_CARRY_MAP.md` | `RAFAELIA_METAPHOR_OPERATIONAL_AUDIT_2026-06-06.md` | pattern found in docs/RAFAELIA_CONCEPT_CARRY_MAP.md: RAFAELIA_METAPHOR_OPERATIONAL_AUDIT_2026-06-06.md | Register or remove orphan audit documents. |
 | V13 | PASS | `command_exit_code` on `python3 scripts/verification/verify_period42_q16.py` | `1` | exit=1, expected=1, stdout=period42_fixed_q16: FAIL first_counterexample.initial=0 first_counterexample.after_42=50223 sqrt3_over_2_q16=56756 pi_sin_279_q16=-203353 | Keep period-42 runtime claim blocked until recurrence/table is corrected and verifier exits 0. |
+| V14 | PASS | `command_exit_code` on `python3 scripts/audit_duplicate_sources.py --max-depth 5` | `0` | exit=0, expected=0, stdout=duplicate source groups: 31 duplicate files beyond canonical: 50 | Use generated duplicate_source_audit reports to avoid executing legacy copies blindly. |

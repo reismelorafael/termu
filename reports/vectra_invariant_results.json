@@ -128,5 +128,15 @@
     "invariant_id": "V13",
     "mitigation": "Keep period-42 runtime claim blocked until recurrence/table is corrected and verifier exits 0.",
     "outcome": "PASS"
+  },
+  {
+    "check_kind": "command_exit_code",
+    "check_target": "python3 scripts/audit_duplicate_sources.py --max-depth 5",
+    "detail": "exit=0, expected=0, stdout=duplicate source groups: 31 duplicate files beyond canonical: 50",
+    "expected": "0",
+    "invariant": "duplicate source audit records exact duplicate source/script groups",
+    "invariant_id": "V14",
+    "mitigation": "Use generated duplicate_source_audit reports to avoid executing legacy copies blindly.",
+    "outcome": "PASS"
   }
 ]

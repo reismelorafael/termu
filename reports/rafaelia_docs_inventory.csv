@@ -239,6 +239,7 @@ reports/beta_internal_shell_report.md,2,conceito/manifesto/outros,ARTIFACT
 reports/bootstrap_gap_report.md,2,android/bootstrap,ARTIFACT
 reports/bootstrap_integrity.md,2,android/bootstrap,ARTIFACT
 reports/debug_bootstrap_test.md,2,android/bootstrap,ARTIFACT
+reports/duplicate_source_audit.md,2,segurança/auditoria,ARTIFACT
 reports/external_integration_status.md,2,conceito/manifesto/outros,ARTIFACT
 reports/rafaelia_claim_execution_results.md,2,conceito/manifesto/outros,ARTIFACT
 reports/vectra_grade_benchmarks.md,2,testes/benchmark,ARTIFACT

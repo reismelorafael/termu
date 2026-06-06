@@ -6,7 +6,7 @@
     "outcome": "PASS",
     "status": "DOC_ONLY",
     "stderr_excerpt": "",
-    "stdout_excerpt": "Arme/pomeg.txt:608: * [#M05] Toroide T^7 simplificado: 7 coordenadas Q16 com IIR alpha=0.25 */ Arme/pomeg.txt:634:/* [#M02] IIR Q16 alpha=0.25 — filtro T^7 */ Arme/pomeg.txt:687:/* [#M05] Toroide T^7 simplificado para ARM32 */ Arme/pomeg.txt:808:/* [#F05] Fase 5: toroide T^7 */ Arme/pomeg.txt:810: raf_puts(\"\\nTOROID..."
+    "stdout_excerpt": "BugOrAdd/rafaelia_b1.S:74:@ Tabela dos 42 atratores no toro T^7 BugOrAdd/vectras_bbs.c:201: \"Topologia Toroidal T^7\", BugOrAdd/vectras_bbs.c:336: \" [2] Estado toroidal T^7:\", Arme/estado_nucleo.md:855: n_c = 7 (dimensão semântica do inglês via T^7) Arme/estado_nucleo.md:857: Chi(T^7) = 0 → Sigma(indices atratores) =..."
   },
   {
     "claim_id": "C02",
@@ -15,7 +15,7 @@
     "outcome": "PASS",
     "status": "NEEDS_EVIDENCE",
     "stderr_excerpt": "",
-    "stdout_excerpt": "./Arme/pomeg.txt:608: * [#M05] Toroide T^7 simplificado: 7 coordenadas Q16 com IIR alpha=0.25 */ ./Arme/pomeg.txt:634:/* [#M02] IIR Q16 alpha=0.25 — filtro T^7 */ ./Arme/pomeg.txt:692: q16_t phi; /* phi_ethica = (1-H)*C */ ./Arme/RAFAELIA_ENTERPRISE_BENCH_v3 (1).c:258: u32 phi = qmul(65535u - H, C); // φ=(1-H)·C [eq..."
+    "stdout_excerpt": "./AGENTS.md:47:φ = (1-H)·C — Lyapunov function ./Ret.md:847: * phi = (1-H)*C onde H=entropia_q16, C=coerencia_q16 ./Arme/pomeg.txt:608: * [#M05] Toroide T^7 simplificado: 7 coordenadas Q16 com IIR alpha=0.25 */ ./Arme/pomeg.txt:634:/* [#M02] IIR Q16 alpha=0.25 — filtro T^7 */ ./Arme/pomeg.txt:692: q16_t phi; /* phi_..."
   },
   {
     "claim_id": "C03",
@@ -24,7 +24,7 @@
     "outcome": "PASS",
     "status": "RISK_OPEN",
     "stderr_excerpt": "",
-    "stdout_excerpt": "./Arme/RAFAELIA_ARKRAF_MASTER.txt:2063: |A| = 42 (período determinístico) ./Arme/rafaelia_sementes_v1.txt:183:§S10 KAT/NetKAT BitOmega: primeira aplicação a scheduler móvel ./Arme/Add/README.md:146:L2 Shared: 256 KB, 16-way → g_crc_table, attractor_table ./Arme/Add/termux_arm32_build.sh:771:attractor_table: ./Arme/A..."
+    "stdout_excerpt": "./AGENTS.md:10:validate: bitomega.log → period-42 confirmed ./AGENTS.md:29:- attractor_table: 42 entries required, none missing ./AGENTS.md:32:1. attractor_table incomplete (40 of 42 missing) ./AGENTS.md:45:|A| = 42 — attractor count ./AGENTS.md:46:period(BitOmega) = 42 — confirmed, do not break ./Arme/Add/rafaelia_..."
   },
   {
     "claim_id": "C04",
@@ -42,7 +42,7 @@
     "outcome": "PASS",
     "status": "DOC_ONLY",
     "stderr_excerpt": "",
-    "stdout_excerpt": "docs/knowledge_archives/vectras-vm-android/catalog.json:44: \"invariante_total=I=Phi(s,S,H,C,G) | tudo_converge_aqui\", docs/knowledge_archives/vectras-vm-android/catalog.json:143: \"semantics\": \"Each row is a deterministic work/evidence/mitigation slot; a row is not a claim of implemented production code until promote..."
+    "stdout_excerpt": "docs/ROADMAP_RAFAELIA.md:23:- memory layers docs/RAFAELIA_NOISE_ERROR_MITIGATION.md:12:- `expected_layer != actual_layer` docs/RMR_LOWLEVEL_PURITY_AUDIT.md:13:| app/src/main/cpp/lowlevel/raf_memory_layers.c | Não | Não | Não | Não | Não | Não | Não | COLD_PATH_OK | docs/PSS3_FAILURE_TRACE_FORMAT.md:8:`timestamp,run_..."
   },
   {
     "claim_id": "C06",
@@ -51,7 +51,7 @@
     "outcome": "PASS",
     "status": "NEEDS_EVIDENCE",
     "stderr_excerpt": "",
-    "stdout_excerpt": "scripts/run_top42_bench.sh:11:\"memcpy MB/s\",\"memset MB/s\",\"crc32c MiB/s\",\"crc32_sw MiB/s\",\"EMA ops/sec\",\"entropy ops/sec\",\"DirectByteBuffer process ops/sec\",\"JNI call latency ns\",\"vCPU step ops/sec\",\"stepAllVcpus ops/sec\",\"target_hz\",\"actual_hz_q16\",\"jitter_ns\",\"missed_ticks\",\"period_ns\",\"L1 state bytes\",\"L2 input b..."
+    "stdout_excerpt": "docs/RAFAELIA_VECTRAS_BIT_CONVERGENCE.md:18:- Vectras (referência): FSM Q16 com coherence/entropy/noise/load e estados NEG..META. scripts/generate_rafaelia_navigation.py:110: (\"C02\", \"EMA coherence/entropy alpha=0.25\", \"Formulas 5-8\", \"NEEDS_EVIDENCE\", \"docs/RAFAELIA_CONCEPT_CARRY_MAP.md\", \"rg -n 'alpha=0.25|\\\\(1-H\\..."
   },
   {
     "claim_id": "C07",
@@ -60,7 +60,7 @@
     "outcome": "PASS",
     "status": "NEEDS_EVIDENCE",
     "stderr_excerpt": "",
-    "stdout_excerpt": "rmr/codigos/rafalia_core_spec.yaml:16: hashes: [fnv1a64, crc32, merkle] rmr/codigos/rafalia_core_spec.yaml:21: - input_hash rmr/codigos/rafalia_core_spec.yaml:22: - output_hash Arme/pomeg.txt:608: * [#M05] Toroide T^7 simplificado: 7 coordenadas Q16 com IIR alpha=0.25 */ Arme/pomeg.txt:634:/* [#M02] IIR Q16 alpha=0...."
+    "stdout_excerpt": "rmr/RAFAELIA_SEMENTES.txt:28: Taxa de convergência: (√3/2)^n → 0 exponencialmente rmr/RAFAELIA_SEMENTES.txt:49: I_T7 = log2(65536^14) = 112 bits ≈ log2(170000^7) = 121 bits rmr/RAFAELIA_SEMENTES.txt:52: Capacidade toroidal T^n com coordenadas Q16: rmr/RAFAELIA_SEMENTES.txt:61: V = 2^32 = 4.294.967.296 rmr/RAFAELIA_S..."
   },
   {
     "claim_id": "C08",
@@ -78,7 +78,7 @@
     "outcome": "PASS",
     "status": "NEEDS_EVIDENCE",
     "stderr_excerpt": "",
-    "stdout_excerpt": "Arme/pomeg.txt:304:#define Q16_SQRT3_2 56756 /* sqrt(3)/2 * 65536 */ Arme/pomeg.txt:305:#define Q16_PI_S279 203280 /* |pi*sin(279°)| * 65536 */ Arme/pomeg.txt:307:#define Q16_LAMBDA (-9430) /* ln(sqrt3/2) * 65536 */ Arme/pomeg.txt:604: * [#M01] Fibonacci-Rafael: F*=23.158 (ponto fixo provado esta sessão) Arme/pomeg...."
+    "stdout_excerpt": "scripts/generate_rafaelia_navigation.py:117: (\"C09\", \"sqrt(3)/2 spiral/Fibonacci geometry\", \"Formulas 18-22,38-39\", \"NEEDS_EVIDENCE\", \"docs/RAFAELIA_SQRT3_FIBONACCI_AUDIT.md\", \"rg -n 'sqrt3|sqrt\\\\(3\\\\)|Fibonacci|Spiral|279' docs app scripts Arme\", \"Q16 conversion or recurrence test exceeds tolerance.\", \"Demote perfo..."
   },
   {
     "claim_id": "C10",
@@ -87,7 +87,7 @@
     "outcome": "PASS",
     "status": "NEEDS_EVIDENCE",
     "stderr_excerpt": "",
-    "stdout_excerpt": "scripts/setup_android_toolchain.sh:7:CMDLINE_TOOLS_VERSION=\"${CMDLINE_TOOLS_VERSION:-13114758}\" scripts/setup_android_toolchain.sh:61: local archive=\"commandlinetools-${os_id}-${CMDLINE_TOOLS_VERSION}_latest.zip\" scripts/setup_android_toolchain.sh:100:COMPILE_SDK_VERSION=\"$(read_prop compileSdkVersion)\" scripts/setu..."
+    "stdout_excerpt": "scripts/build_release_artifacts.sh:10:if [[ \"${TERMUX_BOOTSTRAP_VALIDATION_MODE:-}\" == \"upstream-debug-compat\" ]]; then scripts/build_release_artifacts.sh:11: echo \"❌ TERMUX_BOOTSTRAP_VALIDATION_MODE=upstream-debug-compat is blocked for release artifact lanes\" >&2 scripts/build_release_artifacts.sh:36: echo \"❌ Unabl..."
   },
   {
     "claim_id": "C11",
@@ -96,7 +96,7 @@
     "outcome": "PASS",
     "status": "RISK_OPEN",
     "stderr_excerpt": "",
-    "stdout_excerpt": "./Arme/pomeg.txt:663: u64 med, p5, p95, min, max; ./Arme/pomeg.txt:680: r.p95=sorted[29]; r.max=sorted[30]; ./BugOrAdd/rafaelia_b6.S:523: ldr r6, =0 @ max_hz ./BugOrAdd/rafaelia_jni_direct.c:259: fd=open(\"/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq\",O_RDONLY|O_CLOEXEC); ./BugOrAdd/rafaelia_jni_direct.c:262..."
+    "stdout_excerpt": "./IMPLEMENTATION_COMPLETE.md:21:Added `-Wl,-z,max-page-size=16384` linker flag to **ALL native libraries**: ./IMPLEMENTATION_COMPLETE.md:79:LOCAL_LDFLAGS := -Wl,-z,max-page-size=16384 ./IMPLEMENTATION_COMPLETE.md:90: arguments \"NDK_APP_LDFLAGS=-Wl,--gc-sections -Wl,-z,max-page-size=16384\" ./README.md:63:- Pipeline R..."
   },
   {
     "claim_id": "C12",
@@ -105,7 +105,7 @@
     "outcome": "PASS",
     "status": "NEEDS_EVIDENCE",
     "stderr_excerpt": "",
-    "stdout_excerpt": "Arme/RAF_GENESIS.txt:292: * BitRAF = varredura stride coprimo = cobertura plena Arme/estado_modelo_temporal.md:812:#define SPECULATIVE_PREFETCH(arr, idx, stride) do { \\ Arme/estado_modelo_temporal.md:813: __builtin_prefetch((arr)+(idx)+(stride), 0, 3); \\ scripts/promote_arme_module.sh:27:[[ -f \"$ROOT_DIR/$MODULE\" ]]..."
+    "stdout_excerpt": "Arme/conceitos_mvp.txt:355: CAMINHO CORTADO: modulo (divisão = 20-40 ciclos) Arme/conceitos_mvp.txt:575: — Arrays: access pattern deve ser sequencial (stride-1) Arme/RAF_PMU_LIVE.txt:223: /* cria lista encadeada com stride aleatório via XOR shift */ scripts/generate_rafaelia_navigation.py:109: (\"C01\", \"T^7 toroidal ..."
   },
   {
     "claim_id": "C13",
@@ -114,7 +114,7 @@
     "outcome": "PASS",
     "status": "DOC_ONLY",
     "stderr_excerpt": "",
-    "stdout_excerpt": "scripts/calc_mvp_authorship_checksum.py:51:def xor32_groups_of_4(byte_values: list[int]) -> int: scripts/calc_mvp_authorship_checksum.py:66: checksum = xor32_groups_of_4(payload) scripts/generate_rafaelia_navigation.py:115: (\"C07\", \"XOR/FNV-like hash flow\", \"Formulas 15,30-32\", \"NEEDS_EVIDENCE\", \"docs/RAFAELIA_CONCE..."
+    "stdout_excerpt": "scripts/generate_rafaelia_navigation.py:115: (\"C07\", \"XOR/FNV-like hash flow\", \"Formulas 15,30-32\", \"NEEDS_EVIDENCE\", \"docs/RAFAELIA_CONCEPT_CARRY_MAP.md\", \"rg -n '0x100000001B3|FNV|\\\\^|xor|hash' app scripts rmr Arme\", \"Checksum differs across ABI or is described as cryptographic when not.\", \"Classify as integrity/c..."
   },
   {
     "claim_id": "C14",
@@ -123,7 +123,7 @@
     "outcome": "PASS",
     "status": "DOC_ONLY",
     "stderr_excerpt": "",
-    "stdout_excerpt": "docs/RAFAELIA_10X10X10_BIT_MATRIX.md:24:Não inferir prova física/7D apenas por estrutura 10x10x10 sem teste quantitativo. docs/rafaelia/FORMULAS_RAFAELIA_INDEX.md:37:**Propósito**: Função de peso que quantifica prioridade ética do ciclo. docs/rafaelia/DOCUMENTACAO_COMPLETA_RAFAELIA.md:108:Maximização da coerência en..."
+    "stdout_excerpt": "docs/RAFAELIA_VCPU_CLOCK.md:8:- sem claim de computação quântica real; apenas mecanismo clássico quantum-inspired. docs/RAFAELIA_SESSION_TRUTH_NAVIGATION.md:54:4. **Custo de fricção**: quantos símbolos, branches, loops, alocações ou dependências foram adicionados? docs/RAFAELIA_CONCEPT_CARRY_MAP.md:47:| Física/simbó..."
   },
   {
     "claim_id": "C15",
@@ -132,7 +132,7 @@
     "outcome": "PASS",
     "status": "NEEDS_BENCHMARK",
     "stderr_excerpt": "",
-    "stdout_excerpt": "docs/knowledge_archives/vectras-vm-android/README.md:53:| 4 | Código/teste | scripts, C, ASM, Gradle | somente quando há evidência | docs/knowledge_archives/vectras-vm-android/FULLSTACK_ENTERPRISE_CAPABILITY_MATRIX.md:28:| FE-20 | Linguagem/som | metadados, não claim físico | corpus + métrica | rotular metáfora | do..."
+    "stdout_excerpt": "docs/RAFAELIA_HZ_AS_MEMORY.md:4:- Regra Hz→Layer: >50000 L1; >38000 L2; >25000 BUF; else RAM. docs/BETA_BUILD_FLAGS.md:9:- `RAF_ENABLE_BITRAF=ON` (somente com selftest mínimo) docs/RMR_PURE_CORE_REPORT.md:11:- Alguns módulos ASM ainda estão em perfil demo/runner e não somente core lib. docs/BOOTSTRAP_REWRITE.md:10:-..."
   },
   {
     "claim_id": "C16",
@@ -150,7 +150,7 @@
     "outcome": "PASS",
     "status": "NEEDS_EVIDENCE",
     "stderr_excerpt": "",
-    "stdout_excerpt": "Arme/pomeg.txt:473: * [#IO05] Buffer na stack — zero heap, zero global mutable */ Arme/pomeg.txt:545:/* raf_arena_arm32.h — Bump allocator ARM32 sem malloc sem heap Arme/pomeg.txt:549: * [#AR04] BSS: _g_arena_buf nunca é alocado em heap — está no BSS */ Arme/pomeg.txt:726: * [#MAIN04] Zero heap: tudo na stack ou are..."
+    "stdout_excerpt": "Arme/conceitos_mvp.txt:18: — Referência de ASM sem stub sem malloc Arme/conceitos_mvp.txt:73: — Problema: usa malloc, usa float, usa libc Arme/conceitos_mvp.txt:83: CoreMark: 18.000 pts — com malloc, com libc Arme/conceitos_mvp.txt:84: RAFAELIA fraf: 0.81 ns/op — sem libc, Q16, zero malloc Arme/conceitos_mvp.txt:86:..."
   },
   {
     "claim_id": "C18",
@@ -159,7 +159,7 @@
     "outcome": "PASS",
     "status": "NEEDS_EVIDENCE",
     "stderr_excerpt": "",
-    "stdout_excerpt": "Arme/pomeg.txt:98: for (( i=n-1; i>=0; i-- )); do Arme/pomeg.txt:482: if (n) raf_write(FD_STDOUT, s, n); Arme/pomeg.txt:487: if (n) _sc3(SYS_WRITE,(u32)FD_STDERR,(u32)(uptr)s,(u32)n); Arme/pomeg.txt:491: if (!v) { buf[i--] = '0'; } Arme/pomeg.txt:498: for (s32 i=9; i>=2; i--) { buf[i]=h[v&0xFu]; v>>=4; } Arme/pomeg...."
+    "stdout_excerpt": "Arme/conceitos_mvp.txt:140: CSEL/CMOV (branchless) → 1 ciclo (seleção condicional sem flush) Arme/conceitos_mvp.txt:146: L3 (instrução): branchless, SIMD, prefetch Arme/conceitos_mvp.txt:548: if (!(verify)) raf_flags_rollback(); \\ Arme/conceitos_mvp.txt:569: — Qualquer branch com <90% de previsibilidade = candidato ..."
   },
   {
     "claim_id": "C19",

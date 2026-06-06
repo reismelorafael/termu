@@ -203,7 +203,7 @@
     }
   ],
   "claims_sha256": "d8aa3de610b0bf9a748eb7d315a25eee23fecf7a738b57d95d6983ff24b832d7",
-  "document_count": 261,
+se  "document_count": 262,
   "documents": [
     {
       "depth": 1,
@@ -1647,6 +1647,12 @@
     },
     {
       "depth": 2,
+      "domain": "segurança/auditoria",
+      "path": "reports/duplicate_source_audit.md",
+      "status": "ARTIFACT"
+    },
+    {
+      "depth": 2,
       "domain": "conceito/manifesto/outros",
       "path": "reports/external_integration_status.md",
       "status": "ARTIFACT"
@@ -1772,6 +1778,6 @@
       "status": "DOC_INDEXED"
     }
   ],
-  "documents_sha256": "25bc5c9a05f534561a17277cbdd8b17b9420f52734533832a989c6cefb01f260",
+  "documents_sha256": "b508281e0d9a2e03499399837ae5dc7f39497974c59894abcf289f2948d90a8a",
   "max_depth": 5
 }
