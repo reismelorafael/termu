@@ -8,4 +8,5 @@ import com.termux.shared.errors.Error;
 import com.termux.shared.logger.Logger;
 import com.termux.shared.termux.TermuxBootstrap;
 import com.termux.shared.termux.TermuxConstants;
-import com.termux.shared.termux.cr
+import com.termux.shared.termux.crash.TermuxCrashUtils;
+import com.termux.shared.termux.file
