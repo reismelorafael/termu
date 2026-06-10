@@ -1,0 +1,331 @@
+[
+  {
+    "canonical_path": "Arme/Add/baremetal_nomalloc.h",
+    "duplicate_paths": [
+      "BugOrAdd/baremetal_nomalloc.h",
+      "rmr/Rrr/baremetal_nomalloc.h"
+    ],
+    "file_count": 3,
+    "group_id": "DUP001",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "037fa577d85e5f6ceeba9a9cedc2b4aad6d53a937bee1f1cb93b58cdff9f4cc3"
+  },
+  {
+    "canonical_path": "Arme/Add/build_all.sh",
+    "duplicate_paths": [
+      "BugOrAdd/build_all.sh",
+      "rmr/Rrr/build_all.sh"
+    ],
+    "file_count": 3,
+    "group_id": "DUP002",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "ba5126f99ccae80078be9b27e4dba4c6e64ce9931d4bcb048c59b02748ae76cc"
+  },
+  {
+    "canonical_path": "Arme/Add/diagnose.sh",
+    "duplicate_paths": [
+      "BugOrAdd/diagnose.sh",
+      "rmr/Rrr/diagnose.sh"
+    ],
+    "file_count": 3,
+    "group_id": "DUP003",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "8be3749a0350903295e11713d06bb6aad528a1dc99e33253774990cec7bd9c13"
+  },
+  {
+    "canonical_path": "Arme/Add/diagnose_termux.sh",
+    "duplicate_paths": [
+      "BugOrAdd/diagnose_termux.sh",
+      "rmr/Rrr/diagnose_termux.sh"
+    ],
+    "file_count": 3,
+    "group_id": "DUP004",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "acfda8096fe7d40032b650e13436b5731a92affda6ffa3f717e663174dcf2c88"
+  },
+  {
+    "canonical_path": "Arme/Add/raf_asm_b1.S",
+    "duplicate_paths": [
+      "BugOrAdd/raf_asm_b1.S",
+      "rmr/Rrr/raf_asm_b1.S"
+    ],
+    "file_count": 3,
+    "group_id": "DUP005",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "b3f35973c9fbd6e5441369f9305b37313f3ad61671f25db3e7caacd9815d2138"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_arena.h",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_arena.h",
+      "rmr/Rrr/rafaelia_arena.h"
+    ],
+    "file_count": 3,
+    "group_id": "DUP006",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "2b9ff20c75dabc07d43cb6b8402cd914a7126e44a9092ef354b31a3f1c55a74c"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_b2.S",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_b2.S",
+      "rmr/Rrr/rafaelia_b2.S"
+    ],
+    "file_count": 3,
+    "group_id": "DUP007",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "420dd863be80b674d6067dfe20216762bbd57b98ae086c34cab66d67e7efd6b6"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_b4.S",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_b4.S",
+      "rmr/Rrr/rafaelia_b4.S"
+    ],
+    "file_count": 3,
+    "group_id": "DUP008",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "8c4aa84abe422c75ae5c28449a19a84a6bbf16b54be588ea1a34d2125883664b"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_b5.S",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_b5.S",
+      "rmr/Rrr/rafaelia_b5.S"
+    ],
+    "file_count": 3,
+    "group_id": "DUP009",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "8fe8dd363c07adda04b359a8b833c62e804f8c23b12021374763ba29ae7bdffe"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_b6.S",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_b6.S",
+      "rmr/Rrr/rafaelia_b6.S"
+    ],
+    "file_count": 3,
+    "group_id": "DUP010",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "3c16f47c0fbdbe50cf59d18a4c5191921dc0bea89c97aac056e186314162334b"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_b7.S",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_b7.S",
+      "rmr/Rrr/rafaelia_b7.S"
+    ],
+    "file_count": 3,
+    "group_id": "DUP011",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "06288c8fb552632391b78a3690f3064cad6d5a1060550640e7186bd05f535c99"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_b8.S",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_b8.S",
+      "rmr/Rrr/rafaelia_b8.S"
+    ],
+    "file_count": 3,
+    "group_id": "DUP012",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "6faf804ad751d76eb15391d7b70656299b8c90fbb5611bbc86bb21e071ec6f5d"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_bitraf.c",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_bitraf.c",
+      "rmr/Rrr/rafaelia_bitraf.c"
+    ],
+    "file_count": 3,
+    "group_id": "DUP013",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "680a13b82ca824dad933dd32be14f30a44f6bb53cf4cd41933aabea48dcaacf5"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_gpu_mid.c",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_gpu_mid.c",
+      "rmr/Rrr/rafaelia_gpu_mid.c"
+    ],
+    "file_count": 3,
+    "group_id": "DUP014",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "66e21515792b855f3e19398f6b17c978d924154da52cb49d0cbd752bcea799dc"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_gpu_mid.h",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_gpu_mid.h",
+      "rmr/Rrr/rafaelia_gpu_mid.h"
+    ],
+    "file_count": 3,
+    "group_id": "DUP015",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "a90e632e458ca88461f53c48fef599412c1fbb9a509988c8fafe44698dad8d00"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_master.sh",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_master.sh",
+      "rmr/Rrr/rafaelia_master.sh"
+    ],
+    "file_count": 3,
+    "group_id": "DUP016",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "bc47b48f76cbc07eff6bb4911ac9bad3af251bccd0689210222c45ca9d327fba"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_orchestrator.c",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_orchestrator.c",
+      "rmr/Rrr/rafaelia_orchestrator.c"
+    ],
+    "file_count": 3,
+    "group_id": "DUP017",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "fd17c9a1319fcab1ebe1cc7c70721c4546e8a106db51f1978989b621322ee387"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_sigma_omega.c",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_sigma_omega.c",
+      "rmr/Rrr/rafaelia_sigma_omega.c"
+    ],
+    "file_count": 3,
+    "group_id": "DUP018",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "2f522bbcff8ad7b8886825e8e0cfe61d053ec79294b735800fb51d5756a42527"
+  },
+  {
+    "canonical_path": "Arme/Add/termux_arm32_build.sh",
+    "duplicate_paths": [
+      "BugOrAdd/termux_arm32_build.sh",
+      "rmr/Rrr/termux_arm32_build.sh"
+    ],
+    "file_count": 3,
+    "group_id": "DUP019",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "50ee313efbf33be3928e3776ab8b10b27cc085923b515e6dbed58543ee51dd48"
+  },
+  {
+    "canonical_path": "Arme/Add/RafaeliaCore.java",
+    "duplicate_paths": [
+      "BugOrAdd/RafaeliaCore.java"
+    ],
+    "file_count": 2,
+    "group_id": "DUP020",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "154a42ea8827d324a65859a15699b01f46db8afeaa857c68c0f90f68974d790d"
+  },
+  {
+    "canonical_path": "Arme/Add/baremetal_nomalloc.c",
+    "duplicate_paths": [
+      "BugOrAdd/baremetal_nomalloc.c"
+    ],
+    "file_count": 2,
+    "group_id": "DUP021",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "f201eec45dc893a931557d3fdbb6e050aef477f26bac4b67f552ff6f9ef89406"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_b1.S",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_b1.S"
+    ],
+    "file_count": 2,
+    "group_id": "DUP022",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "1803bfd9850e68dc15e87d98942d256a69ab94a8d07ab21d8ebadd103bdf9d15"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_b3.S",
+    "duplicate_paths": [
+      "rmr/Rrr/rafaelia_b3.S"
+    ],
+    "file_count": 2,
+    "group_id": "DUP023",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "6e7f3bd15d1f6b74b3010f27e2ff23caeec55e317b2f13f2f388a304e488903d"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_core.c",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_core.c"
+    ],
+    "file_count": 2,
+    "group_id": "DUP024",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "144524c99ceec819bb8ef08783f37a4bf76aa9c33201f5616769087ca6078cc4"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_glue.c",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_glue.c"
+    ],
+    "file_count": 2,
+    "group_id": "DUP025",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "9c77ae021cb7a517cfc1a65a38bdabeb99587c1e79b1f8a6d708c3636b8ee949"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_jni_direct.c",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_jni_direct.c"
+    ],
+    "file_count": 2,
+    "group_id": "DUP026",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "cc829d6c38ed1548ffc14cb897c0f6ea532872d4830c4a881ac6738c405f765f"
+  },
+  {
+    "canonical_path": "Arme/Add/rafaelia_types.h",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_types.h"
+    ],
+    "file_count": 2,
+    "group_id": "DUP027",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "084646fb57b13232005c3d13b03c96617a6fc0c0b5cf0e24106ee3046f940d61"
+  },
+  {
+    "canonical_path": "Arme/Add/repo_mvp_puro.s",
+    "duplicate_paths": [
+      "mvp/rafaelia_mvp_puro.s"
+    ],
+    "file_count": 2,
+    "group_id": "DUP028",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "58e55b7493150a6d9ccd7b050f647d3d198ec22f4463c12628e2f5451f02acf5"
+  },
+  {
+    "canonical_path": "BugOrAdd/bitstack.c",
+    "duplicate_paths": [
+      "rmr/Rrr/bitstack.c"
+    ],
+    "file_count": 2,
+    "group_id": "DUP029",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "d028fd365acca424d6fa1bfe90e0a7ba2cbb43c0b5ba9740592c40ffe2faf25a"
+  },
+  {
+    "canonical_path": "BugOrAdd/rafaelia_bench.S",
+    "duplicate_paths": [
+      "BugOrAdd/rafaelia_core_armv7_bench.S"
+    ],
+    "file_count": 2,
+    "group_id": "DUP030",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "6bd1527b8fd5750a3705b1057fc7be5ee3c04e6ad0806ed9f10d69d00cee6739"
+  },
+  {
+    "canonical_path": "rafaelia/old/raf_cat_hz.c",
+    "duplicate_paths": [
+      "rafaelia/old/rafhz.c"
+    ],
+    "file_count": 2,
+    "group_id": "DUP031",
+    "mitigation": "Do not execute/build every copy blindly; pick canonical or require explicit legacy allowlist.",
+    "sha256": "0ae843b36027a211b4250cb082889b11b5ae35956a3b10dcedbf63d477bf3a08"
+  }
+]
