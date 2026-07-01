@@ -55,7 +55,7 @@ public class FileUtils {
 
     private static final String LOG_TAG = "FileUtils";
 
-    private static void deleteRecursivelyWithNio(final Path path) throws IOException {
+    private static void deleteTreeWithNio(final Path path, final boolean keepRoot) throws IOException {
         if (!Files.exists(path, LinkOption.NOFOLLOW_LINKS)) return;
 
         Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
@@ -68,29 +68,18 @@ public class FileUtils {
             @Override
             public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
                 if (exc != null) throw exc;
-                Files.deleteIfExists(dir);
+                if (!keepRoot || !dir.equals(path)) Files.deleteIfExists(dir);
                 return FileVisitResult.CONTINUE;
             }
         });
     }
 
+    private static void deleteRecursivelyWithNio(final Path path) throws IOException {
+        deleteTreeWithNio(path, false);
+    }
+
     private static void clearDirectoryWithNio(final Path path) throws IOException {
-        if (!Files.exists(path, LinkOption.NOFOLLOW_LINKS)) return;
-
-        Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Files.deleteIfExists(file);
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                if (exc != null) throw exc;
-                if (!dir.equals(path)) Files.deleteIfExists(dir);
-                return FileVisitResult.CONTINUE;
-            }
-        });
+        deleteTreeWithNio(path, true);
     }
 
     /**
