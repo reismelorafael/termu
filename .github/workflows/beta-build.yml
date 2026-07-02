@@ -5,6 +5,37 @@ name: RafCodePhi Beta Build
 on:
   push:
   workflow_dispatch:
+    inputs:
+      build_apk_matrix:
+        description: Build signed + unsigned APK matrix (arm32 + arm64)
+        required: false
+        type: boolean
+        default: true
+      run_bootstrap_baremetal_guard:
+        description: Build and run bootstrap baremetal guard smoke
+        required: false
+        type: boolean
+        default: true
+      run_pss3_failure_audit:
+        description: Run optional PSS3 failure audit
+        required: false
+        type: boolean
+        default: true
+      enforce_blocker_beta_gate:
+        description: Fail when BLOCKER_BETA is detected in the PSS3 report
+        required: false
+        type: boolean
+        default: true
+      publish_matrix_summary:
+        description: Publish APK matrix summary to the GitHub Actions summary
+        required: false
+        type: boolean
+        default: true
+      upload_beta_artifacts:
+        description: Upload beta build artifacts
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   beta-build:
@@ -20,20 +51,38 @@ jobs:
           java-version: '21'
           cache: gradle
 
+      - name: Record manual beta build choices
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "## Beta build manual choices" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Option | Enabled |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| build_apk_matrix | ${{ inputs.build_apk_matrix }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| run_bootstrap_baremetal_guard | ${{ inputs.run_bootstrap_baremetal_guard }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| run_pss3_failure_audit | ${{ inputs.run_pss3_failure_audit }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| enforce_blocker_beta_gate | ${{ inputs.enforce_blocker_beta_gate }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| publish_matrix_summary | ${{ inputs.publish_matrix_summary }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| upload_beta_artifacts | ${{ inputs.upload_beta_artifacts }} |" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Setup Android SDK/NDK
+        if: github.event_name != 'workflow_dispatch' || inputs.build_apk_matrix
         run: ./scripts/setup_android_toolchain.sh
 
       - name: Prepare bootstrap hashes (BLAKE3 + SHA256)
+        if: github.event_name != 'workflow_dispatch' || inputs.build_apk_matrix
         run: ./scripts/prepare_bootstrap_env.sh --github-env
 
       - name: Build signed + unsigned APK matrix (arm32 + arm64)
+        if: github.event_name != 'workflow_dispatch' || inputs.build_apk_matrix
         run: ./scripts/build_apk_matrix.sh
 
       - name: Build bootstrap baremetal guard smoke
+        if: github.event_name != 'workflow_dispatch' || inputs.run_bootstrap_baremetal_guard
         run: |
           cc -O2 -Wall -Wextra -Iapp/src/main/cpp/lowlevel             tools/bootstrap_baremetal_guard_smoke.c             app/src/main/cpp/lowlevel/bootstrap_baremetal_guard.c             -o tools/bootstrap_baremetal_guard_smoke
 
       - name: Run bootstrap baremetal guard selftest (non-blocking)
+        if: github.event_name != 'workflow_dispatch' || inputs.run_bootstrap_baremetal_guard
         run: |
           set +e
           mkdir -p out
@@ -41,10 +90,12 @@ jobs:
           exit 0
 
       - name: Build PSS3 failure lab tool
+        if: github.event_name != 'workflow_dispatch' || inputs.run_pss3_failure_audit
         run: |
           cc -O2 -Wall -Wextra -o tools/pss3_failure_lab tools/pss3_failure_lab.c
 
       - name: Run optional PSS3 failure audit
+        if: github.event_name != 'workflow_dispatch' || inputs.run_pss3_failure_audit
         run: |
           mkdir -p out
           if [ -f out/failure_trace.csv ]; then
@@ -54,6 +105,7 @@ jobs:
           fi
 
       - name: Enforce BLOCKER_BETA gate only when report exists
+        if: github.event_name != 'workflow_dispatch' || (inputs.run_pss3_failure_audit && inputs.enforce_blocker_beta_gate)
         run: |
           if [ -f out/pss3_failure_report.txt ] && grep -q 'BLOCKER_BETA' out/pss3_failure_report.txt; then
             echo 'BLOCKER_BETA detected in PSS3 report';
@@ -61,6 +113,7 @@ jobs:
           fi
 
       - name: Publish matrix summary
+        if: github.event_name != 'workflow_dispatch' || (inputs.build_apk_matrix && inputs.publish_matrix_summary)
         run: |
           echo "## APK Matrix Size Report" >> $GITHUB_STEP_SUMMARY
           echo "```" >> $GITHUB_STEP_SUMMARY
@@ -72,6 +125,7 @@ jobs:
           echo "```" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload beta artifacts
+        if: github.event_name != 'workflow_dispatch' || inputs.upload_beta_artifacts
         uses: actions/upload-artifact@v7
         with:
           name: rafcodephi-beta-artifacts-${{ github.sha }}
