@@ -5,7 +5,15 @@ cd "$ROOT_DIR"
 source "$ROOT_DIR/scripts/abi_policy_lib.sh"
 
 fail(){ echo "[abi-policy] ERROR: $*" >&2; exit 1; }
-contains(){ grep -Fq -- "$1" "$2"; }
+contains(){
+  local needle="$1"
+  local file="$2"
+  if command -v rg >/dev/null 2>&1; then
+    rg -Fq -- "$needle" "$file"
+  else
+    grep -Fq -- "$needle" "$file"
+  fi
+}
 
 required_csv="$(abi_policy_required_csv)"
 optional_csv="$(abi_policy_optional_csv)"
