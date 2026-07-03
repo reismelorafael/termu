@@ -61,7 +61,7 @@ import static com.termux.shared.termux.TermuxConstants.TERMUX_STAGING_PREFIX_DIR
  * <p/>
  * (5.2) For every other zip entry, extract it into $STAGING_PREFIX and set execute permissions if necessary.
  */
-final class TermuxInstaller {
+public final class TermuxInstaller {
 
     private static final String LOG_TAG = "TermuxInstaller";
 
@@ -71,7 +71,7 @@ final class TermuxInstaller {
     }
 
     /** Performs bootstrap setup if necessary. */
-    static void setupBootstrapIfNeeded(final Activity activity, final Runnable whenDone) {
+    public static void setupBootstrapIfNeeded(final Activity activity, final Runnable whenDone) {
         String bootstrapErrorMessage;
         Error filesDirectoryAccessibleError;
 
@@ -267,9 +267,10 @@ final class TermuxInstaller {
                         throw new RuntimeException("Bootstrap missing required package manager: " + TERMUX_STAGING_PREFIX_DIR_PATH + "/bin/pkg");
                     }
                     verifyRuntimeBinary(TERMUX_STAGING_PREFIX_DIR_PATH + "/bin/sh", "sh");
-                    verifyRuntimeBinary(TERMUX_STAGING_PREFIX_DIR_PATH + "/bin/busybox", "busybox", false);
-                    logPhase("verify-proot", "verifying optional proot runtime");
-                    verifyRuntimeBinary(TERMUX_STAGING_PREFIX_DIR_PATH + "/bin/proot", "proot", false);
+                    logPhase("verify-busybox", "verifying required busybox runtime");
+                    verifyRuntimeBinary(TERMUX_STAGING_PREFIX_DIR_PATH + "/bin/busybox", "busybox");
+                    logPhase("verify-proot", "verifying required proot runtime");
+                    verifyRuntimeBinary(TERMUX_STAGING_PREFIX_DIR_PATH + "/bin/proot", "proot");
 
                     logPhase("rename-prefix", "moving staging prefix into final prefix");
                     Logger.logInfo(LOG_TAG, "Moving termux prefix staging to prefix directory.");
@@ -290,6 +291,7 @@ final class TermuxInstaller {
                     activity.runOnUiThread(whenDone);
 
                 } catch (final Throwable t) {
+                    rollbackFailedBootstrapInstall();
                     if (BuildConfig.BOOTSTRAP_BAREMETAL_STRICT) {
                         Logger.logError(LOG_TAG, "Bootstrap installation failed in strict mode; propagating exception. " + t);
                         throw new RuntimeException("Bootstrap installation failed in strict mode", t);
@@ -331,6 +333,17 @@ final class TermuxInstaller {
                 // Activity already dismissed - ignore.
             }
         });
+    }
+
+    private static void rollbackFailedBootstrapInstall() {
+        Logger.logWarn(LOG_TAG, "Rolling back failed bootstrap installation; removing staging and incomplete prefix.");
+        FileUtils.deleteFile("termux prefix staging directory", TERMUX_STAGING_PREFIX_DIR_PATH, true);
+        if (!FileUtils.fileExists(TERMUX_PREFIX_DIR_PATH + "/bin/sh", false) ||
+            !FileUtils.fileExists(TERMUX_PREFIX_DIR_PATH + "/bin/pkg", false) ||
+            !FileUtils.fileExists(TERMUX_PREFIX_DIR_PATH + "/bin/busybox", false) ||
+            !FileUtils.fileExists(TERMUX_PREFIX_DIR_PATH + "/bin/proot", false)) {
+            FileUtils.deleteFile("incomplete termux prefix directory", TERMUX_PREFIX_DIR_PATH, true);
+        }
     }
 
     private static void sendBootstrapCrashReportNotification(Activity activity, String message) {

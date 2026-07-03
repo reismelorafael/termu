@@ -44,6 +44,7 @@ import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.termux.TermuxConstants.TERMUX_APP.TERMUX_ACTIVITY;
 import com.termux.app.activities.HelpActivity;
 import com.termux.app.activities.SettingsActivity;
+import com.termux.app.activities.Android15WizardActivity;
 import com.termux.shared.termux.crash.TermuxCrashUtils;
 import com.termux.shared.termux.settings.preferences.TermuxAppSharedPreferences;
 import com.termux.app.terminal.TermuxSessionsListViewController;
@@ -296,6 +297,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
             // On older Android, it will request legacy READ/WRITE.
             if (!PermissionUtils.checkAndRequestLegacyOrManageExternalStoragePermission(
                 this, PermissionUtils.REQUEST_GRANT_STORAGE_PERMISSION, true)) {
+                startActivity(new Intent(this, Android15WizardActivity.class));
                 return false;
             }
         } catch (Throwable t) {
