@@ -24,6 +24,23 @@ def test_gradle_generates_rewritten_bootstraps_before_native_incbin() -> None:
     assert build_gradle.count('implementation project(":termux-shared")') == 1
 
 
+def test_gradle_version_helpers_are_defined_before_default_config_use() -> None:
+    build_gradle = (ROOT / "app/build.gradle").read_text(encoding="utf-8")
+
+    assert "def validateVersionName(String candidateVersionName)" in build_gradle
+    assert "def hasReleaseTaskRequested()" in build_gradle
+    assert "def effectiveVersionName = appVersionName ?: \"0.118.0\"" in build_gradle
+    assert "validateVersionName(effectiveVersionName)" in build_gradle
+    assert "versionName effectiveVersionName" in build_gradle
+    assert "validateVersionName(versionName)" not in build_gradle
+
+    default_config_pos = build_gradle.index("defaultConfig {")
+    validate_helper_pos = build_gradle.index("def validateVersionName")
+    release_helper_pos = build_gradle.index("def hasReleaseTaskRequested")
+    assert validate_helper_pos < default_config_pos
+    assert release_helper_pos < default_config_pos
+
+
 def test_zip_builder_packages_runtime_utility_shims() -> None:
     builder = (ROOT / "scripts/bootstrap_zip_builder.c").read_text(encoding="utf-8")
 
@@ -64,7 +81,7 @@ def test_bootstrap_source_generator_creates_files_that_zip_builder_requires() ->
         "rewritten-bootstrap-aarch64.zip",
         "rewritten-bootstrap-arm.zip",
         "rewritten-bootstrap-i686.zip",
-        "rewritten-bootstrap-x86_64.zip",
+        "rewritten-bootstrap_x86_64.zip".replace("_x86", "-x86"),
     ]:
         assert token in build_script
 
@@ -95,5 +112,6 @@ def test_validator_is_claim_bounded_and_tracks_installability() -> None:
         "claim_boundary=structural_only_no_device_runtime_claim",
         "bootstrap_generation=gradle_prebuild_wired",
         "native_incbin=rewritten_bootstrap_packages_declared",
+        "gradle_version_helpers=present_and_safe",
     ]:
         assert token in validator
