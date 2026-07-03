@@ -68,6 +68,17 @@ def validate() -> list[str]:
     require(build_gradle, "externalNativeBuild", "gradle task", errors)
     require(build_gradle, "generateJsonModel", "gradle task", errors)
 
+    for token in (
+        "def validateVersionName(String candidateVersionName)",
+        "def hasReleaseTaskRequested()",
+        "def effectiveVersionName = appVersionName ?: \"0.118.0\"",
+        "validateVersionName(effectiveVersionName)",
+        "versionName effectiveVersionName",
+    ):
+        require(build_gradle, token, "gradle version helper", errors)
+    if "validateVersionName(versionName)" in build_gradle:
+        errors.append("app/build.gradle: validateVersionName must not be called on Gradle DSL versionName")
+
     if build_gradle.count('implementation project(":termux-shared")') != 1:
         errors.append("app/build.gradle: termux-shared dependency must appear exactly once")
 
@@ -112,6 +123,7 @@ def main() -> int:
     print("claim_boundary=structural_only_no_device_runtime_claim")
     print("bootstrap_generation=gradle_prebuild_wired")
     print("native_incbin=rewritten_bootstrap_packages_declared")
+    print("gradle_version_helpers=present_and_safe")
     return 0
 
 
