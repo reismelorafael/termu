@@ -68,6 +68,8 @@ def main() -> int:
             "for side-by-side bootstrap paths"
         )
 
+    bootstrap_builder = read_text("scripts/build_rafaelia_bootstraps.sh")
+    bootstrap_zip_builder = read_text("scripts/bootstrap_zip_builder.c")
     errors += filter(
         None,
         [
@@ -77,39 +79,34 @@ def main() -> int:
                 "app/build.gradle: manifest TERMUX_PACKAGE_NAME must be derived from appPackageName",
             ),
             require(
-                r'--package-name",\s*project\.ext\.bootstrapMetadataPackageName',
+                r'environment\s+"TERMUX_BOOTSTRAP_PACKAGE_NAME",\s*project\.ext\.bootstrapMetadataPackageName',
                 build_gradle,
-                "app/build.gradle: bootstrap rewrite package-name must use bootstrapMetadataPackageName",
+                "app/build.gradle: bootstrap generation must use bootstrapMetadataPackageName",
             ),
             require(
-                r'--prefix",\s*"/data/data/\$\{project\.ext\.bootstrapMetadataPackageName\}/files/usr"',
+                r'environment\s+"TERMUX_BOOTSTRAP_PAGE_SIZE",\s*project\.ext\.bootstrapRequiredPageSize',
                 build_gradle,
-                "app/build.gradle: bootstrap prefix must be package-derived, not hardcoded com.termux",
+                "app/build.gradle: bootstrap generation must use bootstrapRequiredPageSize",
             ),
             require(
-                r'--home",\s*"/data/data/\$\{project\.ext\.bootstrapMetadataPackageName\}/files/home"',
-                build_gradle,
-                "app/build.gradle: bootstrap home must be package-derived, not hardcoded com.termux",
+                r'prefix="/data/data/\$\{TERMUX_BOOTSTRAP_PACKAGE_NAME\}/files/usr"',
+                bootstrap_builder,
+                "scripts/build_rafaelia_bootstraps.sh: prefix must be derived from TERMUX_BOOTSTRAP_PACKAGE_NAME",
             ),
             require(
-                r'--page-size",\s*project\.ext\.bootstrapRequiredPageSize',
-                build_gradle,
-                "app/build.gradle: bootstrap rewrite page size must use bootstrapRequiredPageSize",
+                r'TERMUX_PACKAGE_NAME=',
+                bootstrap_zip_builder,
+                "scripts/bootstrap_zip_builder.c: BOOTSTRAP_INFO must include TERMUX_PACKAGE_NAME",
+            ),
+            require(
+                r'TERMUX_PAGE_SIZE=',
+                bootstrap_zip_builder,
+                "scripts/bootstrap_zip_builder.c: BOOTSTRAP_INFO must include TERMUX_PAGE_SIZE",
             ),
             require(
                 r'hasReleaseTaskRequested\(\)\s*&&\s*bootstrapBaremetalStrictOverride\s*==\s*false',
                 build_gradle,
                 "app/build.gradle: release tasks must reject disabled baremetal bootstrap strict mode",
-            ),
-            require(
-                r'BOOTSTRAP_INFO TERMUX_PACKAGE_NAME mismatch',
-                build_gradle,
-                "app/build.gradle: bootstrap metadata must fail on package mismatch",
-            ),
-            require(
-                r'BOOTSTRAP_INFO TERMUX_PAGE_SIZE mismatch',
-                build_gradle,
-                "app/build.gradle: bootstrap metadata must fail on page-size mismatch",
             ),
         ],
     )

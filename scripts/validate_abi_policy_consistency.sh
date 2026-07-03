@@ -17,7 +17,11 @@ contains(){
 
 required_csv="$(abi_policy_required_csv)"
 optional_csv="$(abi_policy_optional_csv)"
-expected_csv="$required_csv,$optional_csv"
+if [[ -n "$optional_csv" ]]; then
+  expected_csv="$required_csv,$optional_csv"
+else
+  expected_csv="$required_csv"
+fi
 
 for file in app/build.gradle terminal-emulator/build.gradle scripts/build_apk_matrix.sh scripts/bootstrap_lowlevel_sync_check.sh README.md; do
   [[ -f "$file" ]] || fail "missing $file"

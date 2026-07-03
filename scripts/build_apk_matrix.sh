@@ -47,8 +47,11 @@ fi
 
 mkdir -p "${UNSIGNED_DIR}" "${SIGNED_DIR}" "$(dirname "${KEYSTORE_PATH}")"
 
+info "Validating RAFCODEPHI packages source contract"
+./scripts/validate_rafcodephi_packages_source.sh
+
 info "Preparing bootstrap environment and BLAKE3 vars"
-export RAF_BOOTSTRAP_SOURCE="${RAF_BOOTSTRAP_SOURCE:-local}"
+export RAF_BOOTSTRAP_SOURCE="${RAF_BOOTSTRAP_SOURCE:-termux-packagesRafcodephi-source-contract}"
 info "Using RAF_BOOTSTRAP_SOURCE=${RAF_BOOTSTRAP_SOURCE}"
 bootstrap_env_output="$(./scripts/prepare_bootstrap_env.sh --print-env)" || fail "Bootstrap environment setup failed"
 eval "${bootstrap_env_output}" || fail "Failed to evaluate bootstrap environment"
@@ -146,6 +149,7 @@ done
   echo "release_track=${RELEASE_TRACK}";
   echo "generated_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)";
   echo "signing_keystore=$(basename "${KEYSTORE_PATH}")";
+  cat dist/source-contract/TERMUX_PACKAGES_RAFCODEPHI_SOURCE.env 2>/dev/null || true;
   echo "signed_release_apks_required=$(printf "%s " "${required_abis[@]}")";
   find unsigned signed -type f -name '*.apk' | sort;
 } > ARTIFACT_MANIFEST.txt )

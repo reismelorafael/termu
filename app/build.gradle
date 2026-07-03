@@ -94,7 +94,9 @@ android {
             enable = ((gradle.startParameter.taskNames.any { it.contains("Debug") } && splitAPKsForDebugBuilds == "1") ||
                 (gradle.startParameter.taskNames.any { it.contains("Release") } && splitAPKsForReleaseBuilds == "1"))
             reset()
-            include(*(project.findProperty('termux.abi.matrix').toString().split(',') + project.findProperty('termux.abi.optional').toString().split(',')))
+            def requiredAbiFilters = project.findProperty('termux.abi.matrix').toString().split(',').findAll { it?.trim() }
+            def optionalAbiFilters = project.findProperty('termux.abi.optional').toString().split(',').findAll { it?.trim() }
+            include(*((requiredAbiFilters + optionalAbiFilters) as String[]))
             universalApk = true
         }
     }
@@ -217,6 +219,14 @@ def rafcodephiBootstrapZips = [
     file("src/main/cpp/rewritten-bootstrap-i686.zip"),
     file("src/main/cpp/rewritten-bootstrap-x86_64.zip"),
 ]
+
+
+tasks.register("validateSideBySideContract", Exec) {
+    group = "verification"
+    description = "Validates canonical RAFCODEPHI side-by-side package/bootstrap contract."
+    workingDir rootProject.projectDir
+    commandLine "python3", "scripts/validate_side_by_side_contract.py"
+}
 
 tasks.register("generateRafcodephiBootstraps", Exec) {
     group = "build setup"

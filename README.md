@@ -61,6 +61,7 @@ Quick how-to about Termux package management is available at [Package Management
 ### B) Alterações RAFCODEΦ
 - Identidade side-by-side própria: `com.termux.rafacodephi`.
 - Pipeline RAFAELIA com preparação explícita de bootstrap e validações de contrato.
+- Fonte de pacotes/bootstrap RAFCODEΦ: `https://github.com/exacordex-crypto/termux-packagesRafcodephi`, consumida por CI como fonte de código/metadata com commit fixado, nunca como binário versionado neste repo.
 
 ### C) Módulo low-level RMR
 - Módulo nativo C/ASM com JNI fino, fallback C e dispatch runtime por capacidades.
@@ -68,7 +69,7 @@ Quick how-to about Termux package management is available at [Package Management
 
 ### D) Compatibilidade Android 15/16
 - Binários nativos com alinhamento para page size 16KB via linker flags.
-- ABIs validadas na trilha de build: `armeabi-v7a`, `arm64-v8a`, `x86_64` (e universal quando gerado).
+- ABIs oficiais validadas na trilha de build: `armeabi-v7a` (ARM ABI7) e `arm64-v8a` (ARM ABI8), além do APK universal quando gerado.
 
 ### E) Bootstrap e Signing
 - Bootstraps obrigatórios e hashes BLAKE3 verificados antes de builds críticos.
@@ -807,7 +808,19 @@ Every contribution, no matter how small, is significant and acknowledged. Even a
 - `TERMUX_BOOTSTRAP_VALIDATION_MODE=upstream-debug-compat` é bloqueado nos scripts de release.
 - Hashes de bootstrap BLAKE3 e SHA256 são gerados por `scripts/prepare_bootstrap_env.sh`.
 
-ABIs validadas na trilha de build local: `armeabi-v7a`, `arm64-v8a` e `x86_64`.
+ABIs validadas na trilha de build local/oficial: `armeabi-v7a` e `arm64-v8a`; APK universal pode ser gerado pela matriz, mas x86/x86_64 não fazem parte da trilha ARM oficial.
+
+### termux-packagesRafcodephi source contract
+
+A fonte externa oficial para pacotes/bootstrap RAFCODEΦ é `https://github.com/exacordex-crypto/termux-packagesRafcodephi`. O APK continua sendo construído neste repositório Android; o fork de pacotes é tratado como origem de fonte/metadata, validada por `scripts/validate_rafcodephi_packages_source.sh` antes da matriz de APK.
+
+Variáveis aceitas pela CI:
+
+- `TERMUX_PACKAGES_RAF_REPO`: deve apontar para `exacordex-crypto/termux-packagesRafcodephi`.
+- `TERMUX_PACKAGES_RAF_REF`: commit fixado de 40 caracteres para builds reproduzíveis.
+- `TERMUX_PACKAGES_RAF_REQUIRE_PINNED=true`: bloqueia branches flutuantes em release/CI.
+
+O manifesto `dist/source-contract/TERMUX_PACKAGES_RAFCODEPHI_SOURCE.env` é gerado em CI e anexado aos artefatos de relatório. Binários `.jar`, `.zip`, `.bin` e APKs são produtos de CI/build, não fonte versionada.
 
 ## ROADMAP
 
