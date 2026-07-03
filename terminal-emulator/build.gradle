@@ -18,7 +18,9 @@ android {
         }
 
         ndk {
-            abiFilters(*(project.findProperty('termux.abi.matrix').toString().split(',') + project.findProperty('termux.abi.optional').toString().split(',')))
+            def requiredAbiFilters = project.findProperty('termux.abi.matrix').toString().split(',').findAll { it?.trim() }
+            def optionalAbiFilters = project.findProperty('termux.abi.optional').toString().split(',').findAll { it?.trim() }
+            abiFilters(*((requiredAbiFilters + optionalAbiFilters) as String[]))
         }
     }
 

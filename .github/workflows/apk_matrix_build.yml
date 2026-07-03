@@ -92,6 +92,13 @@ jobs:
       - name: Validate lowlevel bootstrap spec sync
         run: ./scripts/bootstrap_lowlevel_sync_check.sh
 
+      - name: Validate termux-packagesRafcodephi source contract
+        env:
+          TERMUX_PACKAGES_RAF_REPO: https://github.com/exacordex-crypto/termux-packagesRafcodephi.git
+          TERMUX_PACKAGES_RAF_REF: dfd7ce0791bbdacbff61f4b67933ef608d6d180c
+          TERMUX_PACKAGES_RAF_REQUIRE_PINNED: "true"
+        run: ./scripts/validate_rafcodephi_packages_source.sh
+
       - name: Enforce official signing contract
         if: ${{ inputs.release_track == 'official' }}
         env:
@@ -254,7 +261,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: termux-report-artifact-manifest-${{ github.sha }}
-          path: dist/apk-matrix/ARTIFACT_MANIFEST.txt
+          path: |
+            dist/apk-matrix/ARTIFACT_MANIFEST.txt
+            dist/source-contract/TERMUX_PACKAGES_RAFCODEPHI_SOURCE.env
           if-no-files-found: error
 
       - name: Upload local signing keystore

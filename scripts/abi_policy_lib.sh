@@ -12,5 +12,14 @@ abi_policy_universal() { abi_policy_get_prop "termux.abi.universal"; }
 
 abi_policy_required_array() {
   IFS=',' read -r -a _arr <<< "$(abi_policy_required_csv)"
-  printf '%s\n' "${_arr[@]}"
+  for abi in "${_arr[@]}"; do
+    [[ -n "${abi}" ]] && printf '%s\n' "${abi}"
+  done
+}
+
+abi_policy_optional_array() {
+  IFS=',' read -r -a _arr <<< "$(abi_policy_optional_csv)"
+  for abi in "${_arr[@]}"; do
+    [[ -n "${abi}" ]] && printf '%s\n' "${abi}"
+  done
 }

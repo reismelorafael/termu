@@ -58,7 +58,6 @@ The activity wizard protects the normal first terminal path. A service/plugin ex
 This document does not claim:
 
 ```text
-service-level runtime guard is already implemented in Java
 plugin execution is device-validated
 root/system install is complete
 external storage is always granted
@@ -66,32 +65,40 @@ busybox/proot real binaries are present
 performance is improved
 ```
 
-## What was not applied
+## Code patch applied
 
-A direct Java patch to `TermuxService.java` was not applied in this step because the available GitHub content API only exposes full-file replacement, and replacing this large service file without a partial patch would increase regression risk.
-
-## Next safe code patch
-
-Implement a small method in `TermuxService`:
+`TermuxService` now implements:
 
 ```text
 ensureBootstrapReadyForExecution(executionCommand, phase)
+failExecutionCommandOnBootstrapNotReady(executionCommand, bootstrapError)
 ```
 
-and call it before:
+`ensureBootstrapReadyForExecution` is called immediately before:
 
 ```text
-AppShell.execute(...)
-TermuxSession.execute(...)
+AppShell.execute(...)      in createTermuxTask(ExecutionCommand)
+TermuxSession.execute(...) in createTermuxSession(ExecutionCommand)
 ```
 
-The method should call the existing install guard for normal execution and convert failures into plugin/user-visible execution errors without killing the process unexpectedly.
+For a non-failsafe `executionCommand` it reuses the existing install guard
+(`TermuxQualityManager.checkBootstrapComplete()`, which validates `$PREFIX`,
+`$PREFIX/bin`, `$HOME` and `$PREFIX/bin/sh`) and additionally validates
+`$PREFIX/bin/pkg`. A failsafe `executionCommand` (`isFailsafe == true`) is never
+gated, so failsafe session compatibility is preserved.
+
+When bootstrap is not ready, `failExecutionCommandOnBootstrapNotReady` converts
+the failure into `executionCommand.setStateFailed(...)`, routes it through
+`TermuxPluginUtils.processPluginExecutionCommandError(...)` for plugin-originated
+commands, and removes it from the pending plugin execution commands list. The
+service process itself is not killed; only that single task/session creation is
+aborted before a broken shell would have been spawned.
 
 ## Operational verdict
 
 ```text
 NORMAL_ACTIVITY_FIRST_SESSION = GUARDED
-SERVICE_PLUGIN_EXECUTION_BOOTSTRAP_GUARD = TOKEN_VAZIO_CODE_PATCH
+SERVICE_PLUGIN_EXECUTION_BOOTSTRAP_GUARD = IMPLEMENTED
 FAILSAFE_SESSION_COMPATIBILITY = MUST_PRESERVE
 DEVICE_RUNTIME_SMOKE = PENDING
 ```
