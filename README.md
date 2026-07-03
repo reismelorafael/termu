@@ -80,8 +80,8 @@ Quick how-to about Termux package management is available at [Package Management
 
 Fonte única oficial: `gradle.properties`.
 
-- `termux.abi.matrix=armeabi-v7a,arm64-v8a,x86_64` (ABIs obrigatórias)
-- `termux.abi.optional=x86` (ABI opcional de compatibilidade)
+- `termux.abi.matrix=armeabi-v7a,arm64-v8a` (ABIs obrigatórias)
+- `termux.abi.optional=` (nenhuma ABI opcional; x86/x86_64 não fazem parte da trilha ARM oficial)
 - `termux.abi.universal=true` (universal APK quando gerado)
 
 Contratos:
