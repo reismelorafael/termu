@@ -30,6 +30,9 @@ detect_apk_abi() {
 cd "${ROOT_DIR}"
 source "${ROOT_DIR}/scripts/abi_policy_lib.sh"
 
+info "Applying Android boot hotfixes"
+python3 "${ROOT_DIR}/scripts/apply_android_boot_hotfixes.py"
+
 info "Provisioning Android SDK/NDK/CMake"
 ./scripts/setup_android_toolchain.sh
 
