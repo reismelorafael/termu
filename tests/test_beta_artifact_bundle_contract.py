@@ -1,5 +1,6 @@
 import hashlib
 import importlib.util
+import sys
 import zipfile
 from pathlib import Path
 
@@ -12,6 +13,11 @@ def load_validator():
     spec = importlib.util.spec_from_file_location("validate_beta_artifact_bundle_contract", VALIDATOR_PATH)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
+    # The module must be registered in sys.modules before exec_module runs:
+    # dataclasses' postponed-annotation resolution (from __future__ import
+    # annotations, used by tools/validate_beta_artifact_bundle_contract.py)
+    # looks up sys.modules[cls.__module__] while processing @dataclass.
+    sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 

@@ -131,6 +131,7 @@ while [ "$tries" -lt 20 ]; do
     log "OK: service executed marker script"
     log "marker=$(cat "$MARKER")"
     log "rafcodephi_smoke=PASS"
+    log "BOOTSTRAP_FS_SERVICE_SMOKE=PASS"
     log "claim_boundary=runtime_smoke_only_no_performance_claim"
     exit 0
   fi

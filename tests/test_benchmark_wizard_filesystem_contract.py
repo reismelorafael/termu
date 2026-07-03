@@ -50,20 +50,28 @@ def test_operational_excellence_gate_blocks_slogan_optimization() -> None:
         encoding="utf-8"
     )
 
+    # Scope to the "Operational excellence gate" section itself: several of these
+    # same words/phrases ("fast path", "rollback/failback behavior", "claim boundary")
+    # are legitimately used earlier in other contract sections, so a whole-document
+    # search would find those unrelated earlier mentions instead of the ordered gate.
+    section_start = text.index("### 5. Operational excellence gate")
+    section_end = text.index("## Claims allowed", section_start)
+    section = text[section_start:section_end]
+
     gate_order = [
         "capability detection",
-        "fast path",
-        "scalar/fallback path",
-        "deterministic equivalence test",
-        "bounds and buffer check",
-        "non-destructive failure behavior",
-        "rollback/failback behavior",
-        "artifact/log output",
-        "metric emission",
-        "claim boundary",
+        "-> fast path",
+        "-> scalar/fallback path",
+        "-> deterministic equivalence test",
+        "-> bounds and buffer check",
+        "-> non-destructive failure behavior",
+        "-> rollback/failback behavior",
+        "-> artifact/log output",
+        "-> metric emission",
+        "-> claim boundary",
     ]
 
-    positions = [text.index(token) for token in gate_order]
+    positions = [section.index(token) for token in gate_order]
     assert positions == sorted(positions)
 
 
