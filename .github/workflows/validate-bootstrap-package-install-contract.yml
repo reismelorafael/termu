@@ -4,21 +4,31 @@ on:
   push:
     branches: [ master ]
     paths:
+      - README.md
       - app/build.gradle
       - app/src/main/cpp/termux-bootstrap-zip.S
       - scripts/build_rafaelia_bootstraps.sh
       - scripts/bootstrap_zip_builder.c
+      - scripts/smoke_bootstrap_filesystem_proot_busybox_service.sh
+      - docs/audits/README_RUNTIME_CLAIM_BOUNDARY_HOTFIX.md
       - tools/validate_bootstrap_package_install_contract.py
+      - tools/validate_readme_runtime_claim_boundary.py
       - tests/test_bootstrap_package_install_contract.py
+      - tests/test_readme_runtime_claim_boundary.py
       - .github/workflows/validate-bootstrap-package-install-contract.yml
   pull_request:
     paths:
+      - README.md
       - app/build.gradle
       - app/src/main/cpp/termux-bootstrap-zip.S
       - scripts/build_rafaelia_bootstraps.sh
       - scripts/bootstrap_zip_builder.c
+      - scripts/smoke_bootstrap_filesystem_proot_busybox_service.sh
+      - docs/audits/README_RUNTIME_CLAIM_BOUNDARY_HOTFIX.md
       - tools/validate_bootstrap_package_install_contract.py
+      - tools/validate_readme_runtime_claim_boundary.py
       - tests/test_bootstrap_package_install_contract.py
+      - tests/test_readme_runtime_claim_boundary.py
       - .github/workflows/validate-bootstrap-package-install-contract.yml
   workflow_dispatch:
 
@@ -42,6 +52,12 @@ jobs:
 
       - name: Run focused bootstrap package tests
         run: python3 -m pytest -q tests/test_bootstrap_package_install_contract.py
+
+      - name: Validate README runtime claim boundary
+        run: python3 tools/validate_readme_runtime_claim_boundary.py
+
+      - name: Run README runtime claim boundary tests
+        run: python3 -m pytest -q tests/test_readme_runtime_claim_boundary.py
 
       - name: Generate bootstrap packages for native incbin
         run: bash scripts/build_rafaelia_bootstraps.sh
