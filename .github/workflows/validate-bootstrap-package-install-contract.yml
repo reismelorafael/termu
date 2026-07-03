@@ -7,10 +7,12 @@ on:
       - README.md
       - app/build.gradle
       - app/src/main/cpp/termux-bootstrap-zip.S
+      - app/src/main/java/com/termux/app/TermuxApplication.java
       - scripts/build_rafaelia_bootstraps.sh
       - scripts/bootstrap_zip_builder.c
       - scripts/smoke_bootstrap_filesystem_proot_busybox_service.sh
       - docs/audits/README_RUNTIME_CLAIM_BOUNDARY_HOTFIX.md
+      - docs/audits/EXISTING_BOOTSTRAP_ENVIRONMENT_INIT_HOTFIX.md
       - tools/validate_bootstrap_package_install_contract.py
       - tools/validate_readme_runtime_claim_boundary.py
       - tests/test_bootstrap_package_install_contract.py
@@ -21,10 +23,12 @@ on:
       - README.md
       - app/build.gradle
       - app/src/main/cpp/termux-bootstrap-zip.S
+      - app/src/main/java/com/termux/app/TermuxApplication.java
       - scripts/build_rafaelia_bootstraps.sh
       - scripts/bootstrap_zip_builder.c
       - scripts/smoke_bootstrap_filesystem_proot_busybox_service.sh
       - docs/audits/README_RUNTIME_CLAIM_BOUNDARY_HOTFIX.md
+      - docs/audits/EXISTING_BOOTSTRAP_ENVIRONMENT_INIT_HOTFIX.md
       - tools/validate_bootstrap_package_install_contract.py
       - tools/validate_readme_runtime_claim_boundary.py
       - tests/test_bootstrap_package_install_contract.py
