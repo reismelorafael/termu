@@ -136,27 +136,23 @@ jobs:
             exit 1
           fi
 
-      - name: Publish matrix summary
+      - name: Render beta operations dashboard
         id: publish_summary
         if: ${{ always() && (github.event_name != 'workflow_dispatch' || (inputs.build_apk_matrix && inputs.publish_matrix_summary)) }}
         continue-on-error: true
+        env:
+          SETUP_ANDROID_OUTCOME: ${{ steps.setup_android.outcome }}
+          PREPARE_BOOTSTRAP_OUTCOME: ${{ steps.prepare_bootstrap.outcome }}
+          APK_MATRIX_OUTCOME: ${{ steps.apk_matrix.outcome }}
+          BUILD_GUARD_OUTCOME: ${{ steps.build_guard.outcome }}
+          RUN_GUARD_OUTCOME: ${{ steps.run_guard.outcome }}
+          BUILD_PSS3_OUTCOME: ${{ steps.build_pss3.outcome }}
+          RUN_PSS3_OUTCOME: ${{ steps.run_pss3.outcome }}
+          BLOCKER_GATE_OUTCOME: ${{ steps.blocker_gate.outcome }}
+          PUBLISH_SUMMARY_OUTCOME: success
+          UPLOAD_ARTIFACTS_OUTCOME: pending
         run: |
-          echo "## APK Matrix Size Report" >> "$GITHUB_STEP_SUMMARY"
-          echo "```" >> "$GITHUB_STEP_SUMMARY"
-          if [ -f dist/apk-matrix/APK_SIZE_REPORT.tsv ]; then
-            cat dist/apk-matrix/APK_SIZE_REPORT.tsv >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "APK_SIZE_REPORT.tsv not generated" >> "$GITHUB_STEP_SUMMARY"
-          fi
-          echo "```" >> "$GITHUB_STEP_SUMMARY"
-          echo "## Release Signed vs Unsigned Size Diff" >> "$GITHUB_STEP_SUMMARY"
-          echo "```" >> "$GITHUB_STEP_SUMMARY"
-          if [ -f dist/apk-matrix/APK_SIZE_DIFF_RELEASE.tsv ]; then
-            cat dist/apk-matrix/APK_SIZE_DIFF_RELEASE.tsv >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "APK_SIZE_DIFF_RELEASE.tsv not generated" >> "$GITHUB_STEP_SUMMARY"
-          fi
-          echo "```" >> "$GITHUB_STEP_SUMMARY"
+          python3 scripts/render_beta_dashboard.py --out out/beta-dashboard.md --summary "$GITHUB_STEP_SUMMARY"
 
       - name: Upload beta artifacts
         id: upload_artifacts
@@ -169,6 +165,7 @@ jobs:
             dist/apk-matrix/**
             docs/BETA_BUILD_REPORT.md
             docs/BETA_READINESS_REPORT.md
+            out/beta-dashboard.md
             out/pss3_failure_report.txt
             out/bootstrap_baremetal_guard_smoke.txt
             docs/BETA_BOOTSTRAP_BAREMETAL_GUARD.md
@@ -190,15 +187,15 @@ jobs:
           UPLOAD_ARTIFACTS_OUTCOME: ${{ steps.upload_artifacts.outcome }}
         run: |
           status=0
-          echo "## Beta diagnostic final gate" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Step | Outcome |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "## Final operational decision" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Stage | Policy | Outcome |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
 
           check_step() {
             name="$1"
             outcome="$2"
             required="$3"
-            echo "| ${name} | ${outcome:-not-run} |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| ${name} | ${required} | ${outcome:-not-run} |" >> "$GITHUB_STEP_SUMMARY"
             if [ "$required" = "required" ]; then
               case "${outcome:-not-run}" in
                 failure|cancelled)
@@ -223,3 +220,5 @@ jobs:
             echo "One or more required beta diagnostic steps failed after all diagnostics ran."
             exit 1
           fi
+
+          echo "Operational decision: beta pipeline is green."
