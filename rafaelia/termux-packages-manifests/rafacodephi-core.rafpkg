@@ -1,0 +1,7 @@
+seal=RAFPKG
+name=rafacodephi-core
+id=0x05a0c9f1
+name_len=16
+version=1
+source=local
+path=rafaelia/src/main/cpp/rafaelia.c
