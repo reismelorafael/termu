@@ -10,6 +10,7 @@ KEYSTORE_PATH="${KEYSTORE_PATH:-${DEFAULT_KEYSTORE_PATH}}"
 KEY_ALIAS="${KEY_ALIAS:-localrelease}"
 KEY_PASS="${KEY_PASS:-changeit}"
 STORE_PASS="${STORE_PASS:-changeit}"
+RELEASE_TRACK="${RELEASE_TRACK:-internal}"
 
 info() { printf '\n[build_apk_matrix] %s\n' "$*"; }
 fail() { printf '\n[build_apk_matrix] ERROR: %s\n' "$*" >&2; exit 1; }
@@ -19,6 +20,15 @@ source "${ROOT_DIR}/scripts/abi_policy_lib.sh"
 
 info "Provisioning Android SDK/NDK/CMake"
 ./scripts/setup_android_toolchain.sh
+
+case "${RELEASE_TRACK}" in
+  official|internal) ;;
+  *) fail "RELEASE_TRACK must be official or internal, got ${RELEASE_TRACK}" ;;
+esac
+
+if [[ "${RELEASE_TRACK}" == "official" && "${KEYSTORE_PATH}" == "${DEFAULT_KEYSTORE_PATH}" ]]; then
+  fail "Official track requires an explicit release keystore; local validation signing is internal-only."
+fi
 
 mkdir -p "${UNSIGNED_DIR}" "${SIGNED_DIR}" "$(dirname "${KEYSTORE_PATH}")"
 
@@ -83,6 +93,13 @@ for abi in "${required_abis[@]}"; do
   [[ "${signed_counts[$abi]}" -gt 0 ]] || fail "signed ${abi} release APK missing"
 done
 
+if [[ "${RELEASE_TRACK}" == "official" ]]; then
+  info "Official track: removing unsigned release APKs from publishable artifact tree after signing"
+  find "${UNSIGNED_DIR}" -maxdepth 1 -type f -name "*release*.apk" -delete
+fi
+
+# Build reports after any track-specific pruning so upload contract and hashes
+# describe exactly the publishable artifact tree.
 ( cd "${OUT_DIR}" && find unsigned signed -type f -name '*.apk' -print0 | xargs -0 sha256sum > SHA256SUMS.txt )
 
 SIZE_REPORT="${OUT_DIR}/APK_SIZE_REPORT.tsv"
@@ -113,6 +130,7 @@ done
 
 ( cd "${OUT_DIR}" && {
   echo "artifact_dir=${OUT_DIR}";
+  echo "release_track=${RELEASE_TRACK}";
   echo "generated_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)";
   echo "signing_keystore=$(basename "${KEYSTORE_PATH}")";
   echo "signed_release_apks_required=$(printf "%s " "${required_abis[@]}")";

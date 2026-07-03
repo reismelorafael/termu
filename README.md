@@ -286,8 +286,12 @@ eval "$(./scripts/prepare_bootstrap_env.sh --print-env)"
 # Build debug/release (split APKs habilitado)
 ./scripts/build_release_artifacts.sh
 
-# Matriz completa de artefatos + assinatura local auxiliar + SHA256
-./scripts/build_apk_matrix.sh
+# Matriz interna completa: APKs debug/release unsigned + release assinado por chave local de validação + SHA256
+RELEASE_TRACK=internal ./scripts/build_apk_matrix.sh
+
+# Matriz oficial: exige KEYSTORE_PATH/KEY_ALIAS/STORE_PASS/KEY_PASS externos e remove release unsigned
+# da árvore publicável depois da assinatura.
+RELEASE_TRACK=official KEYSTORE_PATH=/path/release.jks KEY_ALIAS=... STORE_PASS=... KEY_PASS=... ./scripts/build_apk_matrix.sh
 ```
 
 Variáveis exportadas por `prepare_bootstrap_env.sh`:
@@ -317,7 +321,7 @@ Release signing oficial é opcional e controlado por:
 | oficial | Obrigatória em `dist/apk-matrix/signed` | Não | Falha se faltar APK assinado por ABI, se houver release unsigned, se hash/nome divergirem de `SHA256SUMS.txt`, ou se `BOOTSTRAP_BAREMETAL_STRICT!=true`. |
 | interna | Obrigatória em `dist/apk-matrix/signed` | Sim, apenas para validação explícita em `dist/apk-matrix/unsigned` | Falha se nomes de signed/unsigned violarem contrato ou se hashes não baterem com `SHA256SUMS.txt`. |
 
-Validação única de contrato executada por `./gradlew verifyReleaseContract` antes de qualquer upload de artefato no workflow `apk_matrix_build.yml`.
+Validação única de contrato executada por `./gradlew verifyReleaseContract` antes de qualquer upload de artefato no workflow `apk_matrix_build.yml`. A trilha `official` prepara automaticamente a keystore oficial a partir dos secrets `OFFICIAL_RELEASE_KEYSTORE_B64`, `OFFICIAL_RELEASE_KEY_ALIAS`, `OFFICIAL_RELEASE_STORE_PASSWORD` e `OFFICIAL_RELEASE_KEY_PASSWORD`; se esses secrets não existirem, o job falha em vez de cair para assinatura local. A trilha `internal` é a única que usa a keystore local gerada em `dist/local-release.keystore` e mantém release unsigned para auditoria.
 
 O módulo nativo mantém dispatch runtime com fallback C seguro para ARM32/ARM64 quando NEON ASM não estiver disponível em runtime.
 
