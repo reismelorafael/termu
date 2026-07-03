@@ -17,6 +17,7 @@ ASM = ROOT / "app/src/main/cpp/termux-bootstrap-zip.S"
 BUILDER = ROOT / "scripts/bootstrap_zip_builder.c"
 BUILD_SCRIPT = ROOT / "scripts/build_rafaelia_bootstraps.sh"
 INSTALLER = ROOT / "app/src/main/java/com/termux/app/TermuxInstaller.java"
+APPLICATION = ROOT / "app/src/main/java/com/termux/app/TermuxApplication.java"
 
 REWRITTEN_ZIPS = (
     "rewritten-bootstrap-aarch64.zip",
@@ -56,6 +57,7 @@ def validate() -> list[str]:
     builder = read(BUILDER, errors)
     build_script = read(BUILD_SCRIPT, errors)
     installer = read(INSTALLER, errors)
+    application = read(APPLICATION, errors)
 
     for zip_name in REWRITTEN_ZIPS:
         require(asm, f'.incbin "{zip_name}"', "native incbin", errors)
@@ -105,9 +107,21 @@ def validate() -> list[str]:
         "verifyRuntimeBinary(TERMUX_STAGING_PREFIX_DIR_PATH + \"/bin/busybox\", \"busybox\")",
         "verifyRuntimeBinary(TERMUX_STAGING_PREFIX_DIR_PATH + \"/bin/proot\", \"proot\")",
         "BootstrapBaremetalGuard.validateAfterBootstrap(TERMUX_PREFIX_DIR_PATH)",
+        "TermuxShellEnvironment.writeEnvironmentToFile(activity)",
         "rollbackFailedBootstrapInstall",
     ):
         require(installer, installer_token, "installer", errors)
+
+    for application_token in (
+        "initializeInstalledBootstrapEnvironment()",
+        "writeShellEnvironmentFile(\"application-startup\")",
+        "new File(TermuxConstants.TERMUX_PREFIX_DIR_PATH + \"/bin/sh\")",
+        "new File(TermuxConstants.TERMUX_PREFIX_DIR_PATH + \"/bin/pkg\")",
+        "BootstrapBaremetalGuard.validateAfterBootstrap(TermuxConstants.TERMUX_PREFIX_DIR_PATH)",
+        "bootstrap-env-init phase=guard-existing-prefix",
+        "TermuxShellEnvironment.writeEnvironmentToFile(this)",
+    ):
+        require(application, application_token, "application bootstrap env init", errors)
 
     return errors
 
@@ -124,6 +138,7 @@ def main() -> int:
     print("bootstrap_generation=gradle_prebuild_wired")
     print("native_incbin=rewritten_bootstrap_packages_declared")
     print("gradle_version_helpers=present_and_safe")
+    print("existing_bootstrap_environment_init=application_startup_guarded")
     return 0
 
 
