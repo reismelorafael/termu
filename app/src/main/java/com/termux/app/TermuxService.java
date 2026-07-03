@@ -26,6 +26,7 @@ import com.termux.shared.termux.plugins.TermuxPluginUtils;
 import com.termux.shared.data.IntentUtils;
 import com.termux.shared.net.uri.UriUtils;
 import com.termux.shared.errors.Errno;
+import com.termux.shared.file.FileUtils;
 import com.termux.shared.shell.ShellUtils;
 import com.termux.shared.shell.command.runner.app.AppShell;
 import com.termux.shared.termux.settings.properties.TermuxAppSharedProperties;
@@ -476,6 +477,46 @@ public final class TermuxService extends Service implements AppShell.AppShellCli
         }
     }
 
+    /**
+     * Check whether {@code $PREFIX/bin/sh}, {@code $PREFIX/bin/pkg} and {@code $HOME} are ready
+     * before a service/plugin execution path ({@link #createTermuxTask(ExecutionCommand)} or
+     * {@link #createTermuxSession(ExecutionCommand)}) spawns {@link AppShell#execute} or
+     * {@link TermuxSession#execute}.
+     *
+     * A failsafe {@link ExecutionCommand} is never gated here, since failsafe sessions exist
+     * precisely to remain usable when the normal bootstrap is missing or broken.
+     *
+     * @param executionCommand The command about to be executed.
+     * @param phase A short label identifying the call site for logging ("TermuxTask" or "TermuxSession").
+     * @return Returns the {@link Error} if bootstrap is not ready for a non-failsafe execution,
+     * otherwise {@code null}.
+     */
+    @Nullable
+    private Error ensureBootstrapReadyForExecution(@NonNull ExecutionCommand executionCommand, @NonNull String phase) {
+        if (executionCommand.isFailsafe)
+            return null;
+
+        Error bootstrapError = TermuxQualityManager.checkBootstrapComplete();
+        if (bootstrapError == null) {
+            String pkgPath = TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH + "/pkg";
+            if (!FileUtils.regularFileExists(pkgPath, true))
+                bootstrapError = ISO9001Errno.ERRNO_BOOTSTRAP_INCOMPLETE.getError(pkgPath);
+        }
+
+        if (bootstrapError != null)
+            Logger.logError(LOG_TAG, "Bootstrap not ready for " + phase + " \"" + executionCommand.getCommandIdAndLabelLogString() + "\": " + Error.getMinimalErrorString(bootstrapError));
+
+        return bootstrapError;
+    }
+
+    /** Fail an {@link ExecutionCommand} cleanly when {@link #ensureBootstrapReadyForExecution} finds bootstrap not ready. */
+    private void failExecutionCommandOnBootstrapNotReady(@NonNull ExecutionCommand executionCommand, @NonNull Error bootstrapError) {
+        executionCommand.setStateFailed(bootstrapError);
+        if (executionCommand.isPluginExecutionCommand)
+            TermuxPluginUtils.processPluginExecutionCommandError(this, LOG_TAG, executionCommand, false);
+        removePendingPluginExecutionCommand(executionCommand);
+    }
+
 
 
 
@@ -525,6 +566,12 @@ public final class TermuxService extends Service implements AppShell.AppShellCli
         if (!Runner.APP_SHELL.equalsRunner(executionCommand.runner)) {
             Logger.logDebug(LOG_TAG, "Ignoring wrong runner \"" + executionCommand.runner + "\" command passed to createTermuxTask()");
             removePendingPluginExecutionCommand(executionCommand);
+            return null;
+        }
+
+        Error bootstrapError = ensureBootstrapReadyForExecution(executionCommand, "TermuxTask");
+        if (bootstrapError != null) {
+            failExecutionCommandOnBootstrapNotReady(executionCommand, bootstrapError);
             return null;
         }
 
@@ -639,6 +686,12 @@ public final class TermuxService extends Service implements AppShell.AppShellCli
         if (!Runner.TERMINAL_SESSION.equalsRunner(executionCommand.runner)) {
             Logger.logDebug(LOG_TAG, "Ignoring wrong runner \"" + executionCommand.runner + "\" command passed to createTermuxSession()");
             removePendingPluginExecutionCommand(executionCommand);
+            return null;
+        }
+
+        Error bootstrapError = ensureBootstrapReadyForExecution(executionCommand, "TermuxSession");
+        if (bootstrapError != null) {
+            failExecutionCommandOnBootstrapNotReady(executionCommand, bootstrapError);
             return null;
         }
 
