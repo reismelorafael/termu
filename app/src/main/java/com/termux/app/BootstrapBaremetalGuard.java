@@ -113,15 +113,14 @@ final class BootstrapBaremetalGuard {
         ensureDirectory(TermuxConstants.TERMUX_HOME_DIR, 0700, "$HOME");
         ensureDirectory(TermuxConstants.TERMUX_DATA_HOME_DIR, 0700, "$HOME/.termux");
         ensureDirectory(TermuxConstants.TERMUX_CONFIG_HOME_DIR, 0700, "$HOME/.config/termux");
-        ensureDirectory(TermuxConstants.TERMUX_STORAGE_HOME_DIR, 0700, "$HOME/storage placeholder");
+        ensureStoragePlaceholder(TermuxConstants.TERMUX_STORAGE_HOME_DIR);
 
         verifyOwnerExecutable(new File(prefixDir, "bin/sh"), "bootstrap shell");
         verifyOwnerExecutable(new File(prefixDir, "bin/pkg"), "bootstrap package manager");
 
         String primaryAbi = Build.SUPPORTED_ABIS.length > 0 ? Build.SUPPORTED_ABIS[0] : "unknown";
         Logger.logInfo(LOG_TAG, "bootstrap-guard phase=installFilesystemShell status=ok abi=" + primaryAbi +
-            " arm32=" + "armeabi-v7a".equals(primaryAbi) +
-            " storage_external_permission_required=false prefix=" + prefix);
+            " arm32=" + "armeabi-v7a".equals(primaryAbi) + " prefix=" + prefix);
     }
 
     private static void ensureDirectory(File directory, int mode, String label) {
@@ -140,6 +139,28 @@ final class BootstrapBaremetalGuard {
             throw new RuntimeException("Install filesystem guard failed: chmod " + label + " to 0" + Integer.toOctalString(mode) +
                 " at " + directory.getAbsolutePath(), e);
         }
+    }
+
+    private static void ensureStoragePlaceholder(File storageHome) {
+        if (storageHome == null) {
+            throw new RuntimeException("Install filesystem guard failed: null storage home directory");
+        }
+        if (storageHome.exists()) {
+            if (!storageHome.isDirectory()) {
+                throw new RuntimeException("Install filesystem guard failed: $HOME/storage is not a directory: " + storageHome.getAbsolutePath());
+            }
+            Logger.logInfo(LOG_TAG, "bootstrap-guard phase=installStoragePlaceholder status=existing path=" + storageHome.getAbsolutePath());
+            return;
+        }
+        if (!storageHome.mkdirs() && !storageHome.isDirectory()) {
+            throw new RuntimeException("Install filesystem guard failed: could not create $HOME/storage placeholder: " + storageHome.getAbsolutePath());
+        }
+        try {
+            Os.chmod(storageHome.getAbsolutePath(), 0700);
+        } catch (Exception e) {
+            throw new RuntimeException("Install filesystem guard failed: chmod $HOME/storage placeholder at " + storageHome.getAbsolutePath(), e);
+        }
+        Logger.logInfo(LOG_TAG, "bootstrap-guard phase=installStoragePlaceholder status=created path=" + storageHome.getAbsolutePath());
     }
 
     private static void verifyOwnerExecutable(File file, String label) {
