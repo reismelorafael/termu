@@ -1,0 +1,103 @@
+name: Bootstrap Package Install Contract
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - app/build.gradle
+      - app/src/main/cpp/termux-bootstrap-zip.S
+      - scripts/build_rafaelia_bootstraps.sh
+      - scripts/bootstrap_zip_builder.c
+      - tools/validate_bootstrap_package_install_contract.py
+      - tests/test_bootstrap_package_install_contract.py
+      - .github/workflows/validate-bootstrap-package-install-contract.yml
+  pull_request:
+    paths:
+      - app/build.gradle
+      - app/src/main/cpp/termux-bootstrap-zip.S
+      - scripts/build_rafaelia_bootstraps.sh
+      - scripts/bootstrap_zip_builder.c
+      - tools/validate_bootstrap_package_install_contract.py
+      - tests/test_bootstrap_package_install_contract.py
+      - .github/workflows/validate-bootstrap-package-install-contract.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bootstrap-package-install-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate static bootstrap install contract
+        run: python3 tools/validate_bootstrap_package_install_contract.py
+
+      - name: Run focused bootstrap package tests
+        run: python3 -m pytest -q tests/test_bootstrap_package_install_contract.py
+
+      - name: Generate bootstrap packages for native incbin
+        run: bash scripts/build_rafaelia_bootstraps.sh
+
+      - name: Inspect generated installable bootstrap packages
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import zipfile
+
+          root = Path('app/src/main/cpp')
+          required_zips = [
+              'rewritten-bootstrap-aarch64.zip',
+              'rewritten-bootstrap-arm.zip',
+              'rewritten-bootstrap-i686.zip',
+              'rewritten-bootstrap-x86_64.zip',
+          ]
+          required_entries = {
+              'BOOTSTRAP_INFO',
+              'SYMLINKS.txt',
+              'BUILD_ONLY',
+              'bin/sh',
+              'bin/pkg',
+              'bin/busybox',
+              'bin/proot',
+              'bin/apkmanager',
+              'bin/shellbash',
+              'bin/busybox-safe',
+              'bin/proot-safe',
+              'etc/motd',
+          }
+          for zip_name in required_zips:
+              path = root / zip_name
+              if not path.is_file():
+                  raise SystemExit(f'missing generated bootstrap package: {path}')
+              with zipfile.ZipFile(path) as zf:
+                  names = set(zf.namelist())
+                  missing = sorted(required_entries - names)
+                  if missing:
+                      raise SystemExit(f'{zip_name}: missing entries: {missing}')
+                  info = zf.read('BOOTSTRAP_INFO').decode('utf-8')
+                  build_only = zf.read('BUILD_ONLY').decode('utf-8')
+                  symlinks = zf.read('SYMLINKS.txt').decode('utf-8')
+                  for token in [
+                      'BOOTSTRAP_UTILS_READY=1',
+                      'BOOTSTRAP_APKMANAGER_READY=1',
+                      'BOOTSTRAP_SHELLBASH_READY=1',
+                      'BOOTSTRAP_BUSYBOX_SAFE_READY=1',
+                      'BOOTSTRAP_PROOT_SAFE_READY=1',
+                  ]:
+                      if token not in info:
+                          raise SystemExit(f'{zip_name}: missing metadata token {token}')
+                  if 'RUNTIME_READY=1' not in build_only:
+                      raise SystemExit(f'{zip_name}: runtime marker missing')
+                  if not symlinks.strip():
+                      raise SystemExit(f'{zip_name}: SYMLINKS.txt is empty')
+          print('bootstrap_package_generation=PASS')
+          print('claim_boundary=ci_generation_and_zip_shape_only')
+          PY
