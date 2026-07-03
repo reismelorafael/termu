@@ -6,7 +6,7 @@
 
 ## Purpose
 
-This note records the intended installation contract after the Android write/storage permission step in the installation wizard.
+This note records the installation contract after the Android write/storage permission step in the installation wizard.
 
 The current activity flow requests storage access before starting the service. After permission callback, it calls the storage setup path and then starts/binds the service. The service connection then runs `TermuxInstaller.setupBootstrapIfNeeded(...)` before the initial shell session is created.
 
@@ -30,7 +30,7 @@ $HOME/storage
 
 ## Android permission boundary
 
-Storage permission grants Android shared/external storage access. It does not prove device runtime, root, SAF bypass, performance, or filesystem speedup.
+Storage permission grants Android shared/external storage access. It does not prove device runtime, SAF bypass, performance, or filesystem speedup.
 
 ## Operational verdict
 
