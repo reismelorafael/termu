@@ -26,6 +26,17 @@ ext {
     bootstrapBlake3X8664 = System.getenv("TERMUX_BOOTSTRAP_BLAKE3_X86_64") ?: ""
 }
 
+def validateVersionName(String candidateVersionName) {
+    def semverRegex = "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+    if (!java.util.regex.Pattern.matches(semverRegex, candidateVersionName)) {
+        throw new GradleException("Invalid semantic versionName: ${candidateVersionName}")
+    }
+}
+
+def hasReleaseTaskRequested() {
+    return gradle.startParameter.taskNames.any { it.toLowerCase(Locale.ROOT).contains("release") }
+}
+
 android {
     namespace = "com.termux.rafacodephi"
 
@@ -35,7 +46,7 @@ android {
     def apkVersionTag = System.getenv("TERMUX_APK_VERSION_TAG") ?: ""
     def splitAPKsForDebugBuilds = System.getenv("TERMUX_SPLIT_APKS_FOR_DEBUG_BUILDS") ?: "1"
     def splitAPKsForReleaseBuilds = System.getenv("TERMUX_SPLIT_APKS_FOR_RELEASE_BUILDS") ?: "0" // F-Droid does not support split APKs #1904
-    def requestedReleaseBuild = gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") }
+    def requestedReleaseBuild = hasReleaseTaskRequested()
     def baremetalStrictValue = System.getenv("TERMUX_BOOTSTRAP_BAREMETAL_STRICT") ?: (requestedReleaseBuild ? "true" : "false")
 
     defaultConfig {
@@ -43,11 +54,10 @@ android {
         minSdk = project.properties.minSdkVersion.toInteger()
         targetSdk = project.properties.targetSdkVersion.toInteger()
         versionCode 118
-        versionName "0.118.0"
+        def effectiveVersionName = appVersionName ?: "0.118.0"
+        validateVersionName(effectiveVersionName)
+        versionName effectiveVersionName
         versionNameSuffix "-rafacodephi"
-
-        if (appVersionName) versionName = appVersionName
-        validateVersionName(versionName)
 
         buildConfigField "String", "TERMUX_PACKAGE_VARIANT", "\"" + project.ext.packageVariant + "\"" // Used by TermuxApplication class
         buildConfigField "String", "BOOTSTRAP_BLAKE3_AARCH64", "\"" + project.ext.bootstrapBlake3Aarch64 + "\""
