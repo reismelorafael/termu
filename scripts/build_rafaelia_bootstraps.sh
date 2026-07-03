@@ -16,8 +16,6 @@ mkdir -p "${generated_root}/bin" "${generated_root}/etc" app/src/main/cpp
 
 cat > "${generated_root}/bin/sh" <<'EOS'
 #!/system/bin/sh
-# RAFCODEPHI bootstrap shell launcher.
-# Prefer a real Termux shell after updates; otherwise fall back to Android sh.
 PREFIX="${PREFIX:-/data/data/com.termux.rafacodephi/files/usr}"
 if [ -x "${PREFIX}/bin/bash" ]; then
     exec "${PREFIX}/bin/bash" "$@"
@@ -31,53 +29,100 @@ EOS
 
 cat > "${generated_root}/bin/pkg" <<'EOS'
 #!/system/bin/sh
-# RAFCODEPHI pkg compatibility wrapper.
-# It delegates to real apt/pkg backends when package updates install them.
 PREFIX="${PREFIX:-/data/data/com.termux.rafacodephi/files/usr}"
 cmd="${1:-help}"
+is_raf_wrapper() { [ -f "$1" ] && grep -q 'RAFCODEPHI .*wrapper' "$1" 2>/dev/null; }
 
 if [ "$cmd" = "--version" ] || [ "$cmd" = "version" ]; then
-    echo 'RAFCODEPHI pkg bootstrap-wrapper 1.0'
-    if [ -x "${PREFIX}/bin/apt" ]; then "${PREFIX}/bin/apt" --version 2>/dev/null || true; fi
+    echo 'RAFCODEPHI pkg bridge 1.0'
+    if [ -x "${PREFIX}/bin/apt" ] && ! is_raf_wrapper "${PREFIX}/bin/apt"; then
+        "${PREFIX}/bin/apt" --version 2>/dev/null || true
+    fi
     exit 0
 fi
 
 if [ "$cmd" = "help" ] || [ "$cmd" = "-h" ] || [ "$cmd" = "--help" ]; then
     cat <<'HELP'
-RAFCODEPHI pkg bootstrap wrapper
+RAFCODEPHI pkg bridge
 Usage: pkg <command> [args]
-Delegates to $PREFIX/bin/apt or $PREFIX/bin/apt-get when available.
-Supported bootstrap commands: help, --version, update, upgrade, install, search, list-all, show.
+Commands are delegated to a real apt/apt-get backend after the core packages payload is installed.
+Bootstrap-safe commands: help, --version.
 HELP
     exit 0
 fi
 
-if [ -x "${PREFIX}/bin/apt" ]; then
+if [ -x "${PREFIX}/bin/apt" ] && ! is_raf_wrapper "${PREFIX}/bin/apt"; then
     exec "${PREFIX}/bin/apt" "$@"
 fi
-if [ -x "${PREFIX}/bin/apt-get" ]; then
+if [ -x "${PREFIX}/bin/apt-get" ] && ! is_raf_wrapper "${PREFIX}/bin/apt-get"; then
     exec "${PREFIX}/bin/apt-get" "$@"
 fi
+if [ -x "${PREFIX}/bin/apt.real" ]; then
+    exec "${PREFIX}/bin/apt.real" "$@"
+fi
+if [ -x "${PREFIX}/bin/apt-get.real" ]; then
+    exec "${PREFIX}/bin/apt-get.real" "$@"
+fi
 
-echo 'pkg backend not installed yet: apt/apt-get missing in $PREFIX/bin' >&2
-echo 'bootstrap shell is alive; install a real Termux package backend before package operations.' >&2
+echo 'real apt/apt-get backend is not installed yet' >&2
+echo 'build the RAFCODEPHI core packages and install the generated prefix payload.' >&2
+exit 127
+EOS
+
+cat > "${generated_root}/bin/apt" <<'EOS'
+#!/system/bin/sh
+PREFIX="${PREFIX:-/data/data/com.termux.rafacodephi/files/usr}"
+if [ -x "${PREFIX}/bin/apt.real" ]; then
+    exec "${PREFIX}/bin/apt.real" "$@"
+fi
+case "${1:-help}" in
+    help|-h|--help)
+        echo 'RAFCODEPHI apt bridge: real apt backend not installed yet.'
+        echo 'Use pkg help or install the RAFCODEPHI core packages payload.'
+        exit 0
+        ;;
+    --version|version)
+        echo 'RAFCODEPHI apt bridge 1.0'
+        exit 0
+        ;;
+esac
+echo 'real apt backend is not installed yet' >&2
+exit 127
+EOS
+
+cat > "${generated_root}/bin/apt-get" <<'EOS'
+#!/system/bin/sh
+PREFIX="${PREFIX:-/data/data/com.termux.rafacodephi/files/usr}"
+if [ -x "${PREFIX}/bin/apt-get.real" ]; then
+    exec "${PREFIX}/bin/apt-get.real" "$@"
+fi
+case "${1:-help}" in
+    help|-h|--help)
+        echo 'RAFCODEPHI apt-get bridge: real apt-get backend not installed yet.'
+        echo 'Use pkg help or install the RAFCODEPHI core packages payload.'
+        exit 0
+        ;;
+    --version|version)
+        echo 'RAFCODEPHI apt-get bridge 1.0'
+        exit 0
+        ;;
+esac
+echo 'real apt-get backend is not installed yet' >&2
 exit 127
 EOS
 
 cat > "${generated_root}/bin/busybox" <<'EOS'
 #!/system/bin/sh
-# RAFCODEPHI busybox compatibility wrapper.
-# Delegates common applets to Android toybox/toolbox until a real busybox is installed.
 if [ "${1:-}" = "--help" ] || [ "${1:-}" = "help" ]; then
-    echo 'RAFCODEPHI busybox bootstrap-wrapper; delegates to toybox/toolbox when available.'
+    echo 'RAFCODEPHI busybox bridge; delegates applets to toybox/toolbox until real busybox is installed.'
     exit 0
 fi
 if [ "${1:-}" = "--version" ]; then
-    echo 'RAFCODEPHI busybox bootstrap-wrapper 1.0'
+    echo 'RAFCODEPHI busybox bridge 1.0'
     exit 0
 fi
 if [ $# -eq 0 ]; then
-    echo 'busybox wrapper requires an applet name' >&2
+    echo 'busybox bridge requires an applet name' >&2
     exit 1
 fi
 applet="$1"
@@ -97,8 +142,6 @@ EOS
 
 cat > "${generated_root}/bin/proot" <<'EOS'
 #!/system/bin/sh
-# RAFCODEPHI proot compatibility wrapper.
-# This wrapper is intentionally honest: proot needs a real native binary.
 PREFIX="${PREFIX:-/data/data/com.termux.rafacodephi/files/usr}"
 for candidate in "${PREFIX}/bin/proot.real" "${PREFIX}/libexec/proot"; do
     if [ -x "$candidate" ]; then
@@ -106,34 +149,20 @@ for candidate in "${PREFIX}/bin/proot.real" "${PREFIX}/libexec/proot"; do
     fi
 done
 if [ "${1:-}" = "--version" ] || [ "${1:-}" = "--help" ] || [ "${1:-}" = "help" ]; then
-    echo 'RAFCODEPHI proot bootstrap-wrapper: real proot native binary not installed yet.'
+    echo 'RAFCODEPHI proot bridge: real native proot is not installed yet.'
     exit 0
 fi
-echo 'real proot native binary not installed; cannot emulate proot with a shell wrapper' >&2
+echo 'real proot native binary is not installed yet' >&2
 exit 127
-EOS
-
-cat > "${generated_root}/bin/apt" <<EOS
-#!${prefix}/bin/sh
-# RAFCODEPHI apt compatibility shim.
-exec "${prefix}/bin/pkg" "\$@"
-EOS
-
-cat > "${generated_root}/bin/apt-get" <<EOS
-#!${prefix}/bin/sh
-# RAFCODEPHI apt-get compatibility shim.
-exec "${prefix}/bin/pkg" "\$@"
 EOS
 
 cat > "${generated_root}/bin/apkmanager" <<EOS
 #!${prefix}/bin/sh
-# RAFCODEPHI bootstrap package-manager shim.
 exec "${prefix}/bin/pkg" "\$@"
 EOS
 
 cat > "${generated_root}/bin/shellbash" <<EOS
 #!${prefix}/bin/sh
-# RAFCODEPHI shell launcher. Prefer bash when present; otherwise use bootstrap sh.
 if [ -x "${prefix}/bin/bash" ]; then
     exec "${prefix}/bin/bash" "\$@"
 fi
@@ -142,19 +171,17 @@ EOS
 
 cat > "${generated_root}/bin/busybox-safe" <<EOS
 #!${prefix}/bin/sh
-# Busybox safe launcher.
 exec "${prefix}/bin/busybox" "\$@"
 EOS
 
 cat > "${generated_root}/bin/proot-safe" <<EOS
 #!${prefix}/bin/sh
-# Proot safe launcher.
 exec "${prefix}/bin/proot" "\$@"
 EOS
 
 cat > "${generated_root}/etc/motd" <<'EOS'
 RAFCODEPHI bootstrap payload
-Commands are compatibility wrappers until real Termux packages update the prefix.
+Bootstrap bridges are active. Install the RAFCODEPHI core package payload for real apt/bash/busybox/proot backends.
 EOS
 chmod 700 "${generated_root}/bin/sh" "${generated_root}/bin/pkg" "${generated_root}/bin/busybox" "${generated_root}/bin/proot" \
     "${generated_root}/bin/apt" "${generated_root}/bin/apt-get" "${generated_root}/bin/apkmanager" "${generated_root}/bin/shellbash" \
@@ -167,8 +194,6 @@ RAF_BOOTSTRAP_SRC_DIR="$generated_root" TERMUX_BOOTSTRAP_PACKAGE_NAME="$TERMUX_B
 RAF_BOOTSTRAP_SRC_DIR="$generated_root" TERMUX_BOOTSTRAP_PACKAGE_NAME="$TERMUX_BOOTSTRAP_PACKAGE_NAME" TERMUX_BOOTSTRAP_PAGE_SIZE="$TERMUX_BOOTSTRAP_PAGE_SIZE" "$builder" app/src/main/cpp/bootstrap-i686.zip i686
 RAF_BOOTSTRAP_SRC_DIR="$generated_root" TERMUX_BOOTSTRAP_PACKAGE_NAME="$TERMUX_BOOTSTRAP_PACKAGE_NAME" TERMUX_BOOTSTRAP_PAGE_SIZE="$TERMUX_BOOTSTRAP_PAGE_SIZE" "$builder" app/src/main/cpp/bootstrap-x86_64.zip x86_64
 
-# The native ASM embedder consumes rewritten-bootstrap-*.zip so local/dev mode must
-# mirror its already-runtime-ready payloads to the same canonical names.
 cp app/src/main/cpp/bootstrap-aarch64.zip app/src/main/cpp/rewritten-bootstrap-aarch64.zip
 cp app/src/main/cpp/bootstrap-arm.zip app/src/main/cpp/rewritten-bootstrap-arm.zip
 cp app/src/main/cpp/bootstrap-i686.zip app/src/main/cpp/rewritten-bootstrap-i686.zip
