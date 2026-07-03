@@ -17,7 +17,7 @@ static int w(int fd,const void*buf,size_t n){return write(fd,buf,n)==(ssize_t)n?
 
 typedef struct{const char*name;const uint8_t*data;uint32_t size;uint32_t crc;uint32_t off;uint32_t mode;} E;
 static uint8_t sh_buf[4096], pkg_buf[4096], motd_buf[4096], build_only_buf[256], busybox_buf[4096], proot_buf[4096];
-static uint8_t apkmanager_buf[4096], shellbash_buf[4096], busybox_safe_buf[4096], proot_safe_buf[4096];
+static uint8_t apt_buf[4096], apt_get_buf[4096], apkmanager_buf[4096], shellbash_buf[4096], busybox_safe_buf[4096], proot_safe_buf[4096];
 static const uint8_t symlinks_buf[] = "sh\342\206\220bin/raf-bootstrap-sh\n";
 static const uint8_t compat_buf[] =
 "#!/system/bin/sh\n"
@@ -64,27 +64,30 @@ int main(int argc,char**argv){
   if(!payload_root||!payload_root[0]) payload_root="bootstrap_src/common";
   if(strcmp(abi,"arm")==0) min_api="28";
   int info_n=snprintf(info,sizeof(info),
-    "TERMUX_PACKAGE_NAME=%s\nTERMUX_ARCH=%s\nTERMUX_PAGE_SIZE=%s\nTERMUX_MIN_API=%s\nRAFCODEPHI_BOOTSTRAP=local-ci\nBOOTSTRAP_UTILS_READY=1\nBOOTSTRAP_APKMANAGER_READY=1\nBOOTSTRAP_SHELLBASH_READY=1\nBOOTSTRAP_BUSYBOX_SAFE_READY=1\nBOOTSTRAP_PROOT_SAFE_READY=1\nBOOTSTRAP_COMPAT_HOTFIX_READY=1\nBOOTSTRAP_FULLENGINE_READY=1\nBOOTSTRAP_PATHS_VALIDATED=1\nBOOTSTRAP_PERMISSIONS_DECLARED=1\nBOOTSTRAP_BUSYBOX_PRESENT=1\nBOOTSTRAP_PROOT_PRESENT=1\n",
+    "TERMUX_PACKAGE_NAME=%s\nTERMUX_ARCH=%s\nTERMUX_PAGE_SIZE=%s\nTERMUX_MIN_API=%s\nRAFCODEPHI_BOOTSTRAP=local-ci\nBOOTSTRAP_UTILS_READY=1\nBOOTSTRAP_APKMANAGER_READY=1\nBOOTSTRAP_SHELLBASH_READY=1\nBOOTSTRAP_BUSYBOX_SAFE_READY=1\nBOOTSTRAP_PROOT_SAFE_READY=1\nBOOTSTRAP_COMPAT_HOTFIX_READY=1\nBOOTSTRAP_FULLENGINE_READY=1\nBOOTSTRAP_PATHS_VALIDATED=1\nBOOTSTRAP_PERMISSIONS_DECLARED=1\nBOOTSTRAP_COMMAND_WRAPPERS_READY=1\nBOOTSTRAP_BUSYBOX_PRESENT=1\nBOOTSTRAP_PROOT_PRESENT=1\n",
     bootstrap_pkg,abi,page_size,min_api);
   if(info_n<=0||info_n>=(int)sizeof(info)) return 18;
 
-  uint32_t sh_n=0,pkg_n=0,motd_n=0,busybox_n=0,proot_n=0,apkmanager_n=0,shellbash_n=0,busybox_safe_n=0,proot_safe_n=0;
+  uint32_t sh_n=0,pkg_n=0,motd_n=0,busybox_n=0,proot_n=0,apt_n=0,apt_get_n=0,apkmanager_n=0,shellbash_n=0,busybox_safe_n=0,proot_safe_n=0;
   if(load_file(payload_root,"bin/sh", sh_buf, &sh_n)!=0) return 8;
   if(load_file(payload_root,"bin/pkg", pkg_buf, &pkg_n)!=0) return 9;
   if(load_file(payload_root,"bin/busybox", busybox_buf, &busybox_n)!=0) return 12;
   if(load_file(payload_root,"bin/proot", proot_buf, &proot_n)!=0) return 13;
+  if(load_file(payload_root,"bin/apt", apt_buf, &apt_n)!=0) return 20;
+  if(load_file(payload_root,"bin/apt-get", apt_get_buf, &apt_get_n)!=0) return 21;
   if(load_file(payload_root,"bin/apkmanager", apkmanager_buf, &apkmanager_n)!=0) return 14;
   if(load_file(payload_root,"bin/shellbash", shellbash_buf, &shellbash_n)!=0) return 15;
   if(load_file(payload_root,"bin/busybox-safe", busybox_safe_buf, &busybox_safe_n)!=0) return 16;
   if(load_file(payload_root,"bin/proot-safe", proot_safe_buf, &proot_safe_n)!=0) return 17;
   if(load_file(payload_root,"etc/motd", motd_buf, &motd_n)!=0) return 10;
 
-  const char* marker="BUILD_ONLY=0\nRUNTIME_READY=1\nBOOTSTRAP_PACKAGE_INSTALLABLE=1\nFULLENGINE_READY=1\n";
+  const char* marker="BUILD_ONLY=0\nRUNTIME_READY=1\nBOOTSTRAP_PACKAGE_INSTALLABLE=1\nFULLENGINE_READY=1\nCOMMAND_WRAPPERS_READY=1\n";
   uint32_t build_only_n=(uint32_t)snprintf((char*)build_only_buf,sizeof(build_only_buf),"%s",marker);
   E e[]={
     {"BOOTSTRAP_INFO",(uint8_t*)info,(uint32_t)info_n,0,0,0600},{"SYMLINKS.txt",symlinks_buf,(uint32_t)(sizeof(symlinks_buf)-1),0,0,0600},{"BUILD_ONLY",build_only_buf,build_only_n,0,0,0600},
     {"bin/sh",sh_buf,sh_n,0,0,0700},{"bin/pkg",pkg_buf,pkg_n,0,0,0700},{"bin/busybox",busybox_buf,busybox_n,0,0,0700},{"bin/proot",proot_buf,proot_n,0,0,0700},
-    {"bin/apkmanager",apkmanager_buf,apkmanager_n,0,0,0700},{"bin/shellbash",shellbash_buf,shellbash_n,0,0,0700},{"bin/busybox-safe",busybox_safe_buf,busybox_safe_n,0,0,0700},{"bin/proot-safe",proot_safe_buf,proot_safe_n,0,0,0700},
+    {"bin/apt",apt_buf,apt_n,0,0,0700},{"bin/apt-get",apt_get_buf,apt_get_n,0,0,0700},{"bin/apkmanager",apkmanager_buf,apkmanager_n,0,0,0700},
+    {"bin/shellbash",shellbash_buf,shellbash_n,0,0,0700},{"bin/busybox-safe",busybox_safe_buf,busybox_safe_n,0,0,0700},{"bin/proot-safe",proot_safe_buf,proot_safe_n,0,0,0700},
     {"bin/rafcodephi-compat-hotfix",compat_buf,(uint32_t)(sizeof(compat_buf)-1),0,0,0700},{"etc/motd",motd_buf,motd_n,0,0,0600}
   };
   const int n_entries=(int)(sizeof(e)/sizeof(e[0]));

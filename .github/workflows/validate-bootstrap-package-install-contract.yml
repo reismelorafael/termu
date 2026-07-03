@@ -22,6 +22,7 @@ on:
       - tests/test_readme_runtime_claim_boundary.py
       - tests/test_android_exec_runtime_contract.py
       - tests/test_bootstrap_fullengine_contract.py
+      - tests/test_bootstrap_no_recursive_command_bridges.py
       - .github/workflows/validate-bootstrap-package-install-contract.yml
   pull_request:
     paths:
@@ -41,6 +42,7 @@ on:
       - tests/test_readme_runtime_claim_boundary.py
       - tests/test_android_exec_runtime_contract.py
       - tests/test_bootstrap_fullengine_contract.py
+      - tests/test_bootstrap_no_recursive_command_bridges.py
       - .github/workflows/validate-bootstrap-package-install-contract.yml
   workflow_dispatch:
 
@@ -71,6 +73,9 @@ jobs:
       - name: Run bootstrap fullengine source contract test
         run: python3 -m pytest -q tests/test_bootstrap_fullengine_contract.py
 
+      - name: Run no-recursive command bridge test
+        run: python3 -m pytest -q tests/test_bootstrap_no_recursive_command_bridges.py
+
       - name: Validate README runtime claim boundary
         run: python3 tools/validate_readme_runtime_claim_boundary.py
 
@@ -100,6 +105,8 @@ jobs:
               'BUILD_ONLY',
               'bin/sh',
               'bin/pkg',
+              'bin/apt',
+              'bin/apt-get',
               'bin/busybox',
               'bin/proot',
               'bin/apkmanager',
@@ -120,6 +127,7 @@ jobs:
               'BOOTSTRAP_FULLENGINE_READY=1',
               'BOOTSTRAP_PATHS_VALIDATED=1',
               'BOOTSTRAP_PERMISSIONS_DECLARED=1',
+              'BOOTSTRAP_COMMAND_WRAPPERS_READY=1',
           ]
           for zip_name in required_zips:
               path = root / zip_name
@@ -145,6 +153,8 @@ jobs:
                           raise SystemExit(f'{zip_name}: missing metadata token {token}')
                   if 'RUNTIME_READY=1' not in build_only or 'FULLENGINE_READY=1' not in build_only:
                       raise SystemExit(f'{zip_name}: runtime/fullengine marker missing')
+                  if 'COMMAND_WRAPPERS_READY=1' not in build_only:
+                      raise SystemExit(f'{zip_name}: command wrappers marker missing')
                   if not symlinks.strip():
                       raise SystemExit(f'{zip_name}: SYMLINKS.txt is empty')
           PY

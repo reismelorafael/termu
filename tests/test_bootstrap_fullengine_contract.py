@@ -11,8 +11,12 @@ def test_bootstrap_builder_declares_fullengine_contract():
         "BOOTSTRAP_FULLENGINE_READY=1",
         "BOOTSTRAP_PATHS_VALIDATED=1",
         "BOOTSTRAP_PERMISSIONS_DECLARED=1",
+        "BOOTSTRAP_COMMAND_WRAPPERS_READY=1",
         "FULLENGINE_READY=1",
+        "COMMAND_WRAPPERS_READY=1",
         "bin/rafcodephi-compat-hotfix",
+        "bin/apt",
+        "bin/apt-get",
     ):
         assert token in source
 
