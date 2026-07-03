@@ -76,8 +76,8 @@ REQUIRED_BETA_VALIDATOR_TOKENS = (
 )
 
 REQUIRED_ABI_TOKENS = (
-    "termux.abi.matrix=armeabi-v7a,arm64-v8a,x86_64",
-    "termux.abi.optional=x86",
+    "termux.abi.matrix=armeabi-v7a,arm64-v8a",
+    "termux.abi.optional=",
     "termux.abi.universal=true",
 )
 
