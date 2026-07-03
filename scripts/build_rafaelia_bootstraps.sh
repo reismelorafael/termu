@@ -9,6 +9,7 @@ cd "$ROOT_DIR"
 
 builder="${TMPDIR:-/tmp}/bootstrap_zip_builder.$$"
 generated_root="${ROOT_DIR}/build/generated/rafaelia-bootstrap/common"
+prefix="/data/data/${TERMUX_BOOTSTRAP_PACKAGE_NAME}/files/usr"
 trap 'rm -f "$builder"' EXIT
 
 mkdir -p "${generated_root}/bin" "${generated_root}/etc" app/src/main/cpp
@@ -41,10 +42,46 @@ echo "RAFCODEPHI bootstrap proot stub"
 exit 0
 EOS
 
+cat > "${generated_root}/bin/apkmanager" <<EOS
+#!${prefix}/bin/sh
+# RAFCODEPHI bootstrap package-manager shim.
+exec "${prefix}/bin/pkg" "\$@"
+EOS
+
+cat > "${generated_root}/bin/shellbash" <<EOS
+#!${prefix}/bin/sh
+# RAFCODEPHI shell launcher. Prefer bash when present; otherwise use bootstrap sh.
+if [ -x "${prefix}/bin/bash" ]; then
+    exec "${prefix}/bin/bash" "\$@"
+fi
+exec "${prefix}/bin/sh" "\$@"
+EOS
+
+cat > "${generated_root}/bin/busybox-safe" <<EOS
+#!${prefix}/bin/sh
+# Optional busybox launcher. Does not fake busybox when the bootstrap does not ship it.
+if [ -x "${prefix}/bin/busybox" ]; then
+    exec "${prefix}/bin/busybox" "\$@"
+fi
+echo 'busybox is optional and is not present in this bootstrap' >&2
+exit 127
+EOS
+
+cat > "${generated_root}/bin/proot-safe" <<EOS
+#!${prefix}/bin/sh
+# Optional proot launcher. Does not fake proot when the bootstrap does not ship it.
+if [ -x "${prefix}/bin/proot" ]; then
+    exec "${prefix}/bin/proot" "\$@"
+fi
+echo 'proot is optional and is not present in this bootstrap' >&2
+exit 127
+EOS
+
 cat > "${generated_root}/etc/motd" <<'EOS'
 RAFCODEPHI bootstrap payload
 EOS
-chmod 700 "${generated_root}/bin/sh" "${generated_root}/bin/pkg" "${generated_root}/bin/busybox" "${generated_root}/bin/proot"
+chmod 700 "${generated_root}/bin/sh" "${generated_root}/bin/pkg" "${generated_root}/bin/busybox" "${generated_root}/bin/proot" \
+    "${generated_root}/bin/apkmanager" "${generated_root}/bin/shellbash" "${generated_root}/bin/busybox-safe" "${generated_root}/bin/proot-safe"
 chmod 600 "${generated_root}/etc/motd"
 
 cc -O2 -std=c11 -Wall -Wextra -Werror scripts/bootstrap_zip_builder.c -o "$builder"
@@ -52,5 +89,12 @@ RAF_BOOTSTRAP_SRC_DIR="$generated_root" TERMUX_BOOTSTRAP_PACKAGE_NAME="$TERMUX_B
 RAF_BOOTSTRAP_SRC_DIR="$generated_root" TERMUX_BOOTSTRAP_PACKAGE_NAME="$TERMUX_BOOTSTRAP_PACKAGE_NAME" TERMUX_BOOTSTRAP_PAGE_SIZE="$TERMUX_BOOTSTRAP_PAGE_SIZE" "$builder" app/src/main/cpp/bootstrap-arm.zip arm
 RAF_BOOTSTRAP_SRC_DIR="$generated_root" TERMUX_BOOTSTRAP_PACKAGE_NAME="$TERMUX_BOOTSTRAP_PACKAGE_NAME" TERMUX_BOOTSTRAP_PAGE_SIZE="$TERMUX_BOOTSTRAP_PAGE_SIZE" "$builder" app/src/main/cpp/bootstrap-i686.zip i686
 RAF_BOOTSTRAP_SRC_DIR="$generated_root" TERMUX_BOOTSTRAP_PACKAGE_NAME="$TERMUX_BOOTSTRAP_PACKAGE_NAME" TERMUX_BOOTSTRAP_PAGE_SIZE="$TERMUX_BOOTSTRAP_PAGE_SIZE" "$builder" app/src/main/cpp/bootstrap-x86_64.zip x86_64
+
+# The native ASM embedder consumes rewritten-bootstrap-*.zip so local/dev mode must
+# mirror its already-runtime-ready payloads to the same canonical names.
+cp app/src/main/cpp/bootstrap-aarch64.zip app/src/main/cpp/rewritten-bootstrap-aarch64.zip
+cp app/src/main/cpp/bootstrap-arm.zip app/src/main/cpp/rewritten-bootstrap-arm.zip
+cp app/src/main/cpp/bootstrap-i686.zip app/src/main/cpp/rewritten-bootstrap-i686.zip
+cp app/src/main/cpp/bootstrap-x86_64.zip app/src/main/cpp/rewritten-bootstrap-x86_64.zip
 
 echo "RAFCODEPHI bootstraps generated for package=${TERMUX_BOOTSTRAP_PACKAGE_NAME} page_size=${TERMUX_BOOTSTRAP_PAGE_SIZE} payload=${generated_root}"
