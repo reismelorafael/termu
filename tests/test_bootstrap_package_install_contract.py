@@ -86,7 +86,7 @@ def test_bootstrap_source_generator_creates_files_that_zip_builder_requires() ->
         assert token in build_script
 
 
-def test_installer_keeps_integrity_runtime_and_rollback_guards() -> None:
+def test_installer_keeps_integrity_runtime_environment_and_rollback_guards() -> None:
     installer = (ROOT / "app/src/main/java/com/termux/app/TermuxInstaller.java").read_text(
         encoding="utf-8"
     )
@@ -97,9 +97,27 @@ def test_installer_keeps_integrity_runtime_and_rollback_guards() -> None:
         "verifyRuntimeBinary(TERMUX_STAGING_PREFIX_DIR_PATH + \"/bin/busybox\", \"busybox\")",
         "verifyRuntimeBinary(TERMUX_STAGING_PREFIX_DIR_PATH + \"/bin/proot\", \"proot\")",
         "BootstrapBaremetalGuard.validateAfterBootstrap(TERMUX_PREFIX_DIR_PATH)",
+        "TermuxShellEnvironment.writeEnvironmentToFile(activity)",
         "rollbackFailedBootstrapInstall",
     ]:
         assert token in installer
+
+
+def test_existing_bootstrap_environment_is_initialized_on_application_startup() -> None:
+    application = (ROOT / "app/src/main/java/com/termux/app/TermuxApplication.java").read_text(
+        encoding="utf-8"
+    )
+
+    for token in [
+        "initializeInstalledBootstrapEnvironment()",
+        "writeShellEnvironmentFile(\"application-startup\")",
+        "new File(TermuxConstants.TERMUX_PREFIX_DIR_PATH + \"/bin/sh\")",
+        "new File(TermuxConstants.TERMUX_PREFIX_DIR_PATH + \"/bin/pkg\")",
+        "BootstrapBaremetalGuard.validateAfterBootstrap(TermuxConstants.TERMUX_PREFIX_DIR_PATH)",
+        "bootstrap-env-init phase=guard-existing-prefix",
+        "TermuxShellEnvironment.writeEnvironmentToFile(this)",
+    ]:
+        assert token in application
 
 
 def test_validator_is_claim_bounded_and_tracks_installability() -> None:
@@ -113,5 +131,6 @@ def test_validator_is_claim_bounded_and_tracks_installability() -> None:
         "bootstrap_generation=gradle_prebuild_wired",
         "native_incbin=rewritten_bootstrap_packages_declared",
         "gradle_version_helpers=present_and_safe",
+        "existing_bootstrap_environment_init=application_startup_guarded",
     ]:
         assert token in validator
