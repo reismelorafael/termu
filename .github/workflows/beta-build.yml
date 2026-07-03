@@ -65,67 +65,99 @@ jobs:
           echo "| upload_beta_artifacts | ${{ inputs.upload_beta_artifacts }} |" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Setup Android SDK/NDK
-        if: github.event_name != 'workflow_dispatch' || inputs.build_apk_matrix
+        id: setup_android
+        if: ${{ always() && (github.event_name != 'workflow_dispatch' || inputs.build_apk_matrix) }}
+        continue-on-error: true
         run: ./scripts/setup_android_toolchain.sh
 
       - name: Prepare bootstrap hashes (BLAKE3 + SHA256)
-        if: github.event_name != 'workflow_dispatch' || inputs.build_apk_matrix
+        id: prepare_bootstrap
+        if: ${{ always() && (github.event_name != 'workflow_dispatch' || inputs.build_apk_matrix) }}
+        continue-on-error: true
         run: ./scripts/prepare_bootstrap_env.sh --github-env
 
       - name: Build signed + unsigned APK matrix (arm32 + arm64)
-        if: github.event_name != 'workflow_dispatch' || inputs.build_apk_matrix
+        id: apk_matrix
+        if: ${{ always() && (github.event_name != 'workflow_dispatch' || inputs.build_apk_matrix) }}
+        continue-on-error: true
         run: ./scripts/build_apk_matrix.sh
 
       - name: Build bootstrap baremetal guard smoke
-        if: github.event_name != 'workflow_dispatch' || inputs.run_bootstrap_baremetal_guard
+        id: build_guard
+        if: ${{ always() && (github.event_name != 'workflow_dispatch' || inputs.run_bootstrap_baremetal_guard) }}
+        continue-on-error: true
         run: |
-          cc -O2 -Wall -Wextra -Iapp/src/main/cpp/lowlevel             tools/bootstrap_baremetal_guard_smoke.c             app/src/main/cpp/lowlevel/bootstrap_baremetal_guard.c             -o tools/bootstrap_baremetal_guard_smoke
+          cc -O2 -Wall -Wextra -Iapp/src/main/cpp/lowlevel \
+            tools/bootstrap_baremetal_guard_smoke.c \
+            app/src/main/cpp/lowlevel/bootstrap_baremetal_guard.c \
+            -o tools/bootstrap_baremetal_guard_smoke
 
       - name: Run bootstrap baremetal guard selftest (non-blocking)
-        if: github.event_name != 'workflow_dispatch' || inputs.run_bootstrap_baremetal_guard
+        id: run_guard
+        if: ${{ always() && (github.event_name != 'workflow_dispatch' || inputs.run_bootstrap_baremetal_guard) }}
+        continue-on-error: true
         run: |
-          set +e
           mkdir -p out
-          tools/bootstrap_baremetal_guard_smoke | tee out/bootstrap_baremetal_guard_smoke.txt
+          if [ -x tools/bootstrap_baremetal_guard_smoke ]; then
+            tools/bootstrap_baremetal_guard_smoke | tee out/bootstrap_baremetal_guard_smoke.txt
+          else
+            echo 'bootstrap_baremetal_guard_smoke binary absent; selftest skipped' | tee out/bootstrap_baremetal_guard_smoke.txt
+          fi
           exit 0
 
       - name: Build PSS3 failure lab tool
-        if: github.event_name != 'workflow_dispatch' || inputs.run_pss3_failure_audit
+        id: build_pss3
+        if: ${{ always() && (github.event_name != 'workflow_dispatch' || inputs.run_pss3_failure_audit) }}
+        continue-on-error: true
         run: |
           cc -O2 -Wall -Wextra -o tools/pss3_failure_lab tools/pss3_failure_lab.c
 
       - name: Run optional PSS3 failure audit
-        if: github.event_name != 'workflow_dispatch' || inputs.run_pss3_failure_audit
+        id: run_pss3
+        if: ${{ always() && (github.event_name != 'workflow_dispatch' || inputs.run_pss3_failure_audit) }}
+        continue-on-error: true
         run: |
           mkdir -p out
-          if [ -f out/failure_trace.csv ]; then
+          if [ ! -x tools/pss3_failure_lab ]; then
+            echo 'pss3_failure_lab binary absent; skipping PSS3 audit' | tee out/pss3_failure_report.txt
+          elif [ -f out/failure_trace.csv ]; then
             printf '1\n2\n3\n5\n0\n' | tools/pss3_failure_lab out/failure_trace.csv | tee out/pss3_failure_report.txt
           else
             echo 'failure_trace.csv absent; skipping PSS3 audit' | tee out/pss3_failure_report.txt
           fi
 
       - name: Enforce BLOCKER_BETA gate only when report exists
-        if: github.event_name != 'workflow_dispatch' || (inputs.run_pss3_failure_audit && inputs.enforce_blocker_beta_gate)
+        id: blocker_gate
+        if: ${{ always() && (github.event_name != 'workflow_dispatch' || (inputs.run_pss3_failure_audit && inputs.enforce_blocker_beta_gate)) }}
+        continue-on-error: true
         run: |
           if [ -f out/pss3_failure_report.txt ] && grep -q 'BLOCKER_BETA' out/pss3_failure_report.txt; then
-            echo 'BLOCKER_BETA detected in PSS3 report';
-            exit 1;
+            echo 'BLOCKER_BETA detected in PSS3 report'
+            exit 1
           fi
 
-      - name: Publish matrix summary
-        if: github.event_name != 'workflow_dispatch' || (inputs.build_apk_matrix && inputs.publish_matrix_summary)
+      - name: Render beta operations dashboard
+        id: publish_summary
+        if: ${{ always() && (github.event_name != 'workflow_dispatch' || (inputs.build_apk_matrix && inputs.publish_matrix_summary)) }}
+        continue-on-error: true
+        env:
+          SETUP_ANDROID_OUTCOME: ${{ steps.setup_android.outcome }}
+          PREPARE_BOOTSTRAP_OUTCOME: ${{ steps.prepare_bootstrap.outcome }}
+          APK_MATRIX_OUTCOME: ${{ steps.apk_matrix.outcome }}
+          BUILD_GUARD_OUTCOME: ${{ steps.build_guard.outcome }}
+          RUN_GUARD_OUTCOME: ${{ steps.run_guard.outcome }}
+          BUILD_PSS3_OUTCOME: ${{ steps.build_pss3.outcome }}
+          RUN_PSS3_OUTCOME: ${{ steps.run_pss3.outcome }}
+          BLOCKER_GATE_OUTCOME: ${{ steps.blocker_gate.outcome }}
+          PUBLISH_SUMMARY_OUTCOME: success
+          UPLOAD_ARTIFACTS_OUTCOME: pending
         run: |
-          echo "## APK Matrix Size Report" >> $GITHUB_STEP_SUMMARY
-          echo "```" >> $GITHUB_STEP_SUMMARY
-          cat dist/apk-matrix/APK_SIZE_REPORT.tsv >> $GITHUB_STEP_SUMMARY
-          echo "```" >> $GITHUB_STEP_SUMMARY
-          echo "## Release Signed vs Unsigned Size Diff" >> $GITHUB_STEP_SUMMARY
-          echo "```" >> $GITHUB_STEP_SUMMARY
-          cat dist/apk-matrix/APK_SIZE_DIFF_RELEASE.tsv >> $GITHUB_STEP_SUMMARY
-          echo "```" >> $GITHUB_STEP_SUMMARY
+          python3 scripts/render_beta_dashboard.py --out out/beta-dashboard.md --summary "$GITHUB_STEP_SUMMARY"
 
       - name: Upload beta artifacts
-        if: github.event_name != 'workflow_dispatch' || inputs.upload_beta_artifacts
+        id: upload_artifacts
+        if: ${{ always() && (github.event_name != 'workflow_dispatch' || inputs.upload_beta_artifacts) }}
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: rafcodephi-beta-artifacts-${{ github.sha }}
@@ -133,8 +165,60 @@ jobs:
             dist/apk-matrix/**
             docs/BETA_BUILD_REPORT.md
             docs/BETA_READINESS_REPORT.md
+            out/beta-dashboard.md
             out/pss3_failure_report.txt
             out/bootstrap_baremetal_guard_smoke.txt
             docs/BETA_BOOTSTRAP_BAREMETAL_GUARD.md
             docs/BETA_BOOTSTRAP_BAREMETAL_STATUS.md
-          if-no-files-found: error
+          if-no-files-found: warn
+
+      - name: Final beta diagnostic gate
+        if: ${{ always() }}
+        env:
+          SETUP_ANDROID_OUTCOME: ${{ steps.setup_android.outcome }}
+          PREPARE_BOOTSTRAP_OUTCOME: ${{ steps.prepare_bootstrap.outcome }}
+          APK_MATRIX_OUTCOME: ${{ steps.apk_matrix.outcome }}
+          BUILD_GUARD_OUTCOME: ${{ steps.build_guard.outcome }}
+          RUN_GUARD_OUTCOME: ${{ steps.run_guard.outcome }}
+          BUILD_PSS3_OUTCOME: ${{ steps.build_pss3.outcome }}
+          RUN_PSS3_OUTCOME: ${{ steps.run_pss3.outcome }}
+          BLOCKER_GATE_OUTCOME: ${{ steps.blocker_gate.outcome }}
+          PUBLISH_SUMMARY_OUTCOME: ${{ steps.publish_summary.outcome }}
+          UPLOAD_ARTIFACTS_OUTCOME: ${{ steps.upload_artifacts.outcome }}
+        run: |
+          status=0
+          echo "## Final operational decision" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Stage | Policy | Outcome |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+
+          check_step() {
+            name="$1"
+            outcome="$2"
+            required="$3"
+            echo "| ${name} | ${required} | ${outcome:-not-run} |" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$required" = "required" ]; then
+              case "${outcome:-not-run}" in
+                failure|cancelled)
+                  status=1
+                  ;;
+              esac
+            fi
+          }
+
+          check_step "setup_android" "$SETUP_ANDROID_OUTCOME" "required"
+          check_step "prepare_bootstrap" "$PREPARE_BOOTSTRAP_OUTCOME" "required"
+          check_step "apk_matrix" "$APK_MATRIX_OUTCOME" "required"
+          check_step "build_guard" "$BUILD_GUARD_OUTCOME" "required"
+          check_step "run_guard" "$RUN_GUARD_OUTCOME" "optional"
+          check_step "build_pss3" "$BUILD_PSS3_OUTCOME" "required"
+          check_step "run_pss3" "$RUN_PSS3_OUTCOME" "optional"
+          check_step "blocker_gate" "$BLOCKER_GATE_OUTCOME" "required"
+          check_step "publish_summary" "$PUBLISH_SUMMARY_OUTCOME" "optional"
+          check_step "upload_artifacts" "$UPLOAD_ARTIFACTS_OUTCOME" "optional"
+
+          if [ "$status" -ne 0 ]; then
+            echo "One or more required beta diagnostic steps failed after all diagnostics ran."
+            exit 1
+          fi
+
+          echo "Operational decision: beta pipeline is green."

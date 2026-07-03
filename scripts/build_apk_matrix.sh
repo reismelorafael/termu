@@ -15,6 +15,18 @@ RELEASE_TRACK="${RELEASE_TRACK:-internal}"
 info() { printf '\n[build_apk_matrix] %s\n' "$*"; }
 fail() { printf '\n[build_apk_matrix] ERROR: %s\n' "$*" >&2; exit 1; }
 
+detect_apk_abi() {
+  local base="$1"
+  case "${base}" in
+    *arm64-v8a*) printf 'arm64-v8a' ;;
+    *armeabi-v7a*) printf 'armeabi-v7a' ;;
+    *x86_64*) printf 'x86_64' ;;
+    *x86*) printf 'x86' ;;
+    *universal*) printf 'universal' ;;
+    *) printf 'unknown' ;;
+  esac
+}
+
 cd "${ROOT_DIR}"
 source "${ROOT_DIR}/scripts/abi_policy_lib.sh"
 
@@ -107,9 +119,7 @@ printf 'apk\ttype\tabi\tsize_bytes\n' > "${SIZE_REPORT}"
 while IFS= read -r -d '' apk; do
   base="$(basename "$apk")"
   size="$(stat -c '%s' "$apk")"
-  abi="universal"
-  [[ "$base" == *"arm64-v8a"* ]] && abi="arm64-v8a"
-  [[ "$base" == *"armeabi-v7a"* ]] && abi="armeabi-v7a"
+  abi="$(detect_apk_abi "$base")"
   kind="unsigned"
   [[ "$apk" == *"/signed/"* ]] && kind="signed"
   printf '%s\t%s\t%s\t%s\n' "$base" "$kind" "$abi" "$size" >> "${SIZE_REPORT}"

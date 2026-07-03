@@ -17,6 +17,8 @@ import com.termux.shared.termux.shell.am.TermuxAmSocketServer;
 import com.termux.shared.termux.shell.TermuxShellManager;
 import com.termux.shared.termux.theme.TermuxThemeUtils;
 
+import java.io.File;
+
 public class TermuxApplication extends Application {
 
     private static final String LOG_TAG = "TermuxApplication";
@@ -126,11 +128,38 @@ public class TermuxApplication extends Application {
         }
 
         if (isTermuxFilesDirectoryAccessible) {
-            try {
-                TermuxShellEnvironment.writeEnvironmentToFile(this);
-            } catch (Exception e) {
-                Logger.logError(LOG_TAG, "Failed to write environment to file: " + e.getMessage());
+            initializeInstalledBootstrapEnvironment();
+            writeShellEnvironmentFile("application-startup");
+        }
+    }
+
+    private void initializeInstalledBootstrapEnvironment() {
+        File shell = new File(TermuxConstants.TERMUX_PREFIX_DIR_PATH + "/bin/sh");
+        File packageManager = new File(TermuxConstants.TERMUX_PREFIX_DIR_PATH + "/bin/pkg");
+
+        if (!shell.exists() || !packageManager.exists()) {
+            Logger.logInfo(LOG_TAG, "bootstrap-env-init skipped: prefix not ready yet shell=" + shell.exists() + " pkg=" + packageManager.exists());
+            return;
+        }
+
+        try {
+            Logger.logInfo(LOG_TAG, "bootstrap-env-init phase=guard-existing-prefix prefix=" + TermuxConstants.TERMUX_PREFIX_DIR_PATH);
+            BootstrapBaremetalGuard.validateAfterBootstrap(TermuxConstants.TERMUX_PREFIX_DIR_PATH);
+            Logger.logInfo(LOG_TAG, "bootstrap-env-init phase=guard-existing-prefix status=ok");
+        } catch (Throwable t) {
+            Logger.logStackTraceWithMessage(LOG_TAG, "bootstrap-env-init failed for existing prefix", t);
+            if (BuildConfig.BOOTSTRAP_BAREMETAL_STRICT) {
+                throw new RuntimeException("Existing bootstrap environment failed initialization", t);
             }
+        }
+    }
+
+    private void writeShellEnvironmentFile(String phase) {
+        try {
+            Logger.logInfo(LOG_TAG, "bootstrap-env-init phase=" + phase + " action=write-shell-environment");
+            TermuxShellEnvironment.writeEnvironmentToFile(this);
+        } catch (Exception e) {
+            Logger.logError(LOG_TAG, "Failed to write environment to file: " + e.getMessage());
         }
     }
 
