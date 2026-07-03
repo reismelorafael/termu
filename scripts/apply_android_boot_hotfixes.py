@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Apply narrow Android boot hotfixes before Gradle compilation.
+"""Non-fatal Android boot hotfix compatibility hook.
 
-This script is intentionally conservative: it only patches known source fragments
-that block the first terminal session from being created on fresh installs.
+The beta APK matrix must not depend on fragile source-text rewriting at build
+runtime. Source contracts are enforced by committed code and tests; this hook is
+kept as an operational checkpoint so older workflow wiring remains compatible.
 """
 
 from __future__ import annotations
@@ -10,82 +11,21 @@ from __future__ import annotations
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ACTIVITY = ROOT / "app/src/main/java/com/termux/app/TermuxActivity.java"
-SESSION = ROOT / "termux-shared/src/main/java/com/termux/shared/termux/shell/command/runner/terminal/TermuxSession.java"
 
 
-def replace_once(path: Path, old: str, new: str, label: str) -> bool:
-    text = path.read_text(encoding="utf-8")
-    if new in text:
-        print(f"[boot-hotfix] {label}: already applied")
-        return False
-    if old not in text:
-        raise SystemExit(f"[boot-hotfix] {label}: expected source fragment not found in {path}")
-    path.write_text(text.replace(old, new, 1), encoding="utf-8")
-    print(f"[boot-hotfix] {label}: applied")
-    return True
-
-
-def patch_activity_storage_gate() -> None:
-    old = '''        // On Android 11+ (especially with targetSdk>=30), Termux will often touch primary external
-        // storage (e.g. ~/storage/shared) early during initialization or soon after. If the user
-        // has not granted legacy/managing external storage permission, this can lead to failures
-        // that look like "opens then instantly closes". So we request permission BEFORE starting
-        // the TermuxService.
-        if (!ensureStorageAccessOrRequest()) {
-            // Permission request UI has been launched. Wait for callback.
-            return;
-        }
-
-        startAndBindTermuxServiceOrFail();
-'''
-    new = '''        // Storage permission is useful for ~/storage/shared, but it must not block the
-        // first terminal session. Start the service regardless so the shell can boot;
-        // permission/wizard flows remain auxiliary and can complete after startup.
-        ensureStorageAccessOrRequest();
-        startAndBindTermuxServiceOrFail();
-'''
-    replace_once(ACTIVITY, old, new, "activity storage gate")
-
-
-def patch_session_null_safe_directory_checks() -> None:
-    old = '''    private static boolean isUsableDirectory(@NonNull File candidate) {
-        return candidate.isDirectory() && candidate.canRead() && candidate.canExecute();
-    }
-
-    private static void hardenSystemShellFallbackEnvironment(@NonNull HashMap<String, String> environment,
-                                                            @NonNull String workingDirectory) {
-'''
-    new = '''    private static boolean isUsableDirectory(@NonNull File candidate) {
-        return candidate.isDirectory() && candidate.canRead() && candidate.canExecute();
-    }
-
-    private static boolean isUsableDirectory(@Nullable String path) {
-        return path != null && !path.isEmpty() && isUsableDirectory(new File(path));
-    }
-
-    private static void hardenSystemShellFallbackEnvironment(@NonNull HashMap<String, String> environment,
-                                                            @NonNull String workingDirectory) {
-'''
-    replace_once(SESSION, old, new, "session null-safe directory helper")
-
-    old_env = '''        if (!isUsableDirectory(new File(environment.get(UnixShellEnvironment.ENV_TMPDIR))))
-            environment.put(UnixShellEnvironment.ENV_TMPDIR, workingDirectory);
-        if (!isUsableDirectory(new File(environment.get(UnixShellEnvironment.ENV_HOME))))
-            environment.put(UnixShellEnvironment.ENV_HOME, workingDirectory);
-'''
-    new_env = '''        if (!isUsableDirectory(environment.get(UnixShellEnvironment.ENV_TMPDIR)))
-            environment.put(UnixShellEnvironment.ENV_TMPDIR, workingDirectory);
-        if (!isUsableDirectory(environment.get(UnixShellEnvironment.ENV_HOME)))
-            environment.put(UnixShellEnvironment.ENV_HOME, workingDirectory);
-'''
-    replace_once(SESSION, old_env, new_env, "session fallback env null-safety")
+def check_file(path: str, label: str) -> None:
+    candidate = ROOT / path
+    if candidate.exists():
+        print(f"[boot-hotfix] {label}: present")
+    else:
+        print(f"[boot-hotfix][WARN] {label}: missing at {candidate}")
 
 
 def main() -> int:
-    patch_activity_storage_gate()
-    if SESSION.exists():
-        patch_session_null_safe_directory_checks()
+    print("[boot-hotfix] source rewrite disabled; using committed compatibility contracts")
+    check_file("gradle.properties", "gradle runtime sdk contract")
+    check_file("tests/test_android_exec_runtime_contract.py", "android executable prefix contract test")
+    check_file("scripts/termux_prefix_exec_compat_hotfix.sh", "termux prefix compatibility helper")
     print("[boot-hotfix] complete")
     return 0
 

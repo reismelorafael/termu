@@ -1,0 +1,41 @@
+# ci_track: ops
+# ci_abis: n/a
+name: RAFCODEPHI Operational Auditor
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      modules:
+        description: Auditor modules to run
+        required: false
+        type: string
+        default: all
+
+jobs:
+  auditor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Run RAFCODEPHI auditor
+        run: |
+          bash scripts/rafcodephi_auditor.sh ${{ inputs.modules || 'all' }}
+
+      - name: Publish auditor summary
+        if: always()
+        run: |
+          if [ -f out/rafcodephi-auditor/auditor-report.md ]; then
+            sed -n '1,140p' out/rafcodephi-auditor/auditor-report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'RAFCODEPHI auditor report was not generated.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload auditor artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rafcodephi-auditor-${{ github.sha }}
+          path: out/rafcodephi-auditor/**
+          if-no-files-found: warn

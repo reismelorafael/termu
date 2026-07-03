@@ -1,3 +1,5 @@
+# ci_track: ops
+# ci_abis: n/a
 name: Bootstrap Package Install Contract
 
 on:
@@ -5,6 +7,7 @@ on:
     branches: [ master ]
     paths:
       - README.md
+      - gradle.properties
       - app/build.gradle
       - app/src/main/cpp/termux-bootstrap-zip.S
       - app/src/main/java/com/termux/app/TermuxApplication.java
@@ -17,10 +20,13 @@ on:
       - tools/validate_readme_runtime_claim_boundary.py
       - tests/test_bootstrap_package_install_contract.py
       - tests/test_readme_runtime_claim_boundary.py
+      - tests/test_android_exec_runtime_contract.py
+      - tests/test_bootstrap_fullengine_contract.py
       - .github/workflows/validate-bootstrap-package-install-contract.yml
   pull_request:
     paths:
       - README.md
+      - gradle.properties
       - app/build.gradle
       - app/src/main/cpp/termux-bootstrap-zip.S
       - app/src/main/java/com/termux/app/TermuxApplication.java
@@ -33,6 +39,8 @@ on:
       - tools/validate_readme_runtime_claim_boundary.py
       - tests/test_bootstrap_package_install_contract.py
       - tests/test_readme_runtime_claim_boundary.py
+      - tests/test_android_exec_runtime_contract.py
+      - tests/test_bootstrap_fullengine_contract.py
       - .github/workflows/validate-bootstrap-package-install-contract.yml
   workflow_dispatch:
 
@@ -57,6 +65,12 @@ jobs:
       - name: Run focused bootstrap package tests
         run: python3 -m pytest -q tests/test_bootstrap_package_install_contract.py
 
+      - name: Run Android executable prefix runtime contract test
+        run: python3 -m pytest -q tests/test_android_exec_runtime_contract.py
+
+      - name: Run bootstrap fullengine source contract test
+        run: python3 -m pytest -q tests/test_bootstrap_fullengine_contract.py
+
       - name: Validate README runtime claim boundary
         run: python3 tools/validate_readme_runtime_claim_boundary.py
 
@@ -70,6 +84,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import stat
           import zipfile
 
           root = Path('app/src/main/cpp')
@@ -91,8 +106,21 @@ jobs:
               'bin/shellbash',
               'bin/busybox-safe',
               'bin/proot-safe',
+              'bin/rafcodephi-compat-hotfix',
               'etc/motd',
           }
+          executable_entries = {name for name in required_entries if name.startswith('bin/')}
+          required_info_tokens = [
+              'BOOTSTRAP_UTILS_READY=1',
+              'BOOTSTRAP_APKMANAGER_READY=1',
+              'BOOTSTRAP_SHELLBASH_READY=1',
+              'BOOTSTRAP_BUSYBOX_SAFE_READY=1',
+              'BOOTSTRAP_PROOT_SAFE_READY=1',
+              'BOOTSTRAP_COMPAT_HOTFIX_READY=1',
+              'BOOTSTRAP_FULLENGINE_READY=1',
+              'BOOTSTRAP_PATHS_VALIDATED=1',
+              'BOOTSTRAP_PERMISSIONS_DECLARED=1',
+          ]
           for zip_name in required_zips:
               path = root / zip_name
               if not path.is_file():
@@ -102,22 +130,21 @@ jobs:
                   missing = sorted(required_entries - names)
                   if missing:
                       raise SystemExit(f'{zip_name}: missing entries: {missing}')
+                  for entry in names:
+                      if entry.startswith('/') or '..' in entry.split('/'):
+                          raise SystemExit(f'{zip_name}: unsafe entry path: {entry}')
+                  for entry in executable_entries:
+                      mode = (zf.getinfo(entry).external_attr >> 16) & 0o7777
+                      if not (mode & stat.S_IXUSR):
+                          raise SystemExit(f'{zip_name}: missing owner execute bit on {entry}: mode={mode:o}')
                   info = zf.read('BOOTSTRAP_INFO').decode('utf-8')
                   build_only = zf.read('BUILD_ONLY').decode('utf-8')
                   symlinks = zf.read('SYMLINKS.txt').decode('utf-8')
-                  for token in [
-                      'BOOTSTRAP_UTILS_READY=1',
-                      'BOOTSTRAP_APKMANAGER_READY=1',
-                      'BOOTSTRAP_SHELLBASH_READY=1',
-                      'BOOTSTRAP_BUSYBOX_SAFE_READY=1',
-                      'BOOTSTRAP_PROOT_SAFE_READY=1',
-                  ]:
+                  for token in required_info_tokens:
                       if token not in info:
                           raise SystemExit(f'{zip_name}: missing metadata token {token}')
-                  if 'RUNTIME_READY=1' not in build_only:
-                      raise SystemExit(f'{zip_name}: runtime marker missing')
+                  if 'RUNTIME_READY=1' not in build_only or 'FULLENGINE_READY=1' not in build_only:
+                      raise SystemExit(f'{zip_name}: runtime/fullengine marker missing')
                   if not symlinks.strip():
                       raise SystemExit(f'{zip_name}: SYMLINKS.txt is empty')
-          print('bootstrap_package_generation=PASS')
-          print('claim_boundary=ci_generation_and_zip_shape_only')
           PY
