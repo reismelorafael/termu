@@ -11,6 +11,7 @@ KEY_ALIAS="${KEY_ALIAS:-localrelease}"
 KEY_PASS="${KEY_PASS:-changeit}"
 STORE_PASS="${STORE_PASS:-changeit}"
 RELEASE_TRACK="${RELEASE_TRACK:-internal}"
+APK_MATRIX_UNIT_TESTS_REQUIRED="${APK_MATRIX_UNIT_TESTS_REQUIRED:-true}"
 
 info() { printf '\n[build_apk_matrix] %s\n' "$*"; }
 fail() { printf '\n[build_apk_matrix] ERROR: %s\n' "$*" >&2; exit 1; }
@@ -25,6 +26,11 @@ detect_apk_abi() {
     *universal*) printf 'universal' ;;
     *) printf 'unknown' ;;
   esac
+}
+
+record_diag() {
+  mkdir -p "${OUT_DIR}"
+  printf '%s\n' "$*" >> "${OUT_DIR}/APK_MATRIX_DIAGNOSTIC.md"
 }
 
 cd "${ROOT_DIR}"
@@ -47,9 +53,14 @@ if [[ "${RELEASE_TRACK}" == "official" && "${KEYSTORE_PATH}" == "${DEFAULT_KEYST
 fi
 
 mkdir -p "${UNSIGNED_DIR}" "${SIGNED_DIR}" "$(dirname "${KEYSTORE_PATH}")"
+printf '# APK Matrix Diagnostic\n\n' > "${OUT_DIR}/APK_MATRIX_DIAGNOSTIC.md"
+record_diag "- release_track: ${RELEASE_TRACK}"
+record_diag "- required_abis: ${required_abis[*]}"
+record_diag "- unit_tests_required: ${APK_MATRIX_UNIT_TESTS_REQUIRED}"
 
 info "Validating RAFCODEPHI packages source contract"
 ./scripts/validate_rafcodephi_packages_source.sh
+record_diag "- packages_source_contract: success"
 
 info "Preparing bootstrap environment and BLAKE3 vars"
 # `validate_rafcodephi_packages_source.sh` validates the pinned package source
@@ -71,9 +82,11 @@ case "${BOOTSTRAP_SOURCE_REQUESTED}" in
     ;;
 esac
 export RAF_BOOTSTRAP_SOURCE="${BOOTSTRAP_SOURCE_REQUESTED}"
+record_diag "- bootstrap_source: ${RAF_BOOTSTRAP_SOURCE}"
 info "Using RAF_BOOTSTRAP_SOURCE=${RAF_BOOTSTRAP_SOURCE}"
 bootstrap_env_output="$(./scripts/prepare_bootstrap_env.sh --print-env)" || fail "Bootstrap environment setup failed"
 eval "${bootstrap_env_output}" || fail "Failed to evaluate bootstrap environment"
+record_diag "- bootstrap_env: success"
 
 bootstrap_hash_keys=()
 for abi in "${required_abis[@]}"; do
@@ -93,13 +106,24 @@ for v in "${bootstrap_hash_keys[@]}"; do
   [[ -n "$val" ]] || fail "${var} is not set"
   [[ "$val" =~ ^[0-9a-f]{64}$ ]] || fail "${var}=${val} is not a valid 64-char hex string"
   info "${var}=${val:0:16}..."
+  record_diag "- ${var}: ${val:0:16}..."
 done
 
 info "Running debug unit tests"
-./gradlew :app:testDebugUnitTest --no-daemon
+if ./gradlew :app:testDebugUnitTest --no-daemon; then
+  record_diag "- app_testDebugUnitTest: success"
+else
+  test_status=$?
+  record_diag "- app_testDebugUnitTest: failure(${test_status})"
+  if [[ "${APK_MATRIX_UNIT_TESTS_REQUIRED}" == "true" ]]; then
+    fail ":app:testDebugUnitTest failed and APK_MATRIX_UNIT_TESTS_REQUIRED=true"
+  fi
+  info ":app:testDebugUnitTest failed, but APK_MATRIX_UNIT_TESTS_REQUIRED=${APK_MATRIX_UNIT_TESTS_REQUIRED}; continuing to compile beta APKs"
+fi
 
 info "Building unsigned debug and release APKs"
 TERMUX_SPLIT_APKS_FOR_DEBUG_BUILDS=1 TERMUX_SPLIT_APKS_FOR_RELEASE_BUILDS=1 ./gradlew :app:assembleDebug :app:assembleRelease --no-daemon
+record_diag "- assembleDebug_assembleRelease: success"
 
 cp app/build/outputs/apk/debug/*.apk "${UNSIGNED_DIR}/"
 cp app/build/outputs/apk/release/*.apk "${UNSIGNED_DIR}/"
@@ -107,6 +131,7 @@ cp app/build/outputs/apk/release/*.apk "${UNSIGNED_DIR}/"
 for abi in "${required_abis[@]}"; do
   count=$(find "${UNSIGNED_DIR}" -maxdepth 1 -type f -name "*${abi}*.apk" | wc -l | tr -d ' ')
   [[ "${count}" -gt 0 ]] || fail "${abi} APK was not generated"
+  record_diag "- unsigned_${abi}_count: ${count}"
 done
 
 if [[ "${KEYSTORE_PATH}" == "${DEFAULT_KEYSTORE_PATH}" ]]; then
@@ -138,6 +163,7 @@ declare -A signed_counts=()
 for abi in "${required_abis[@]}"; do
   signed_counts[$abi]=$(find "${SIGNED_DIR}" -maxdepth 1 -type f -name "*${abi}*-signed.apk" | wc -l | tr -d ' ')
   [[ "${signed_counts[$abi]}" -gt 0 ]] || fail "signed ${abi} release APK missing"
+  record_diag "- signed_${abi}_count: ${signed_counts[$abi]}"
 done
 
 if [[ "${RELEASE_TRACK}" == "official" ]]; then
@@ -182,8 +208,10 @@ done
   echo "signed_release_apks_required=$(printf "%s " "${required_abis[@]}")";
   find unsigned signed -type f -name '*.apk' | sort;
 } > ARTIFACT_MANIFEST.txt )
+record_diag "- artifact_manifest: success"
 info "Artifacts generated in ${OUT_DIR}"
 cat "${OUT_DIR}/ARTIFACT_MANIFEST.txt"
+cat "${OUT_DIR}/APK_MATRIX_DIAGNOSTIC.md"
 cat "${OUT_DIR}/APK_SIZE_REPORT.tsv"
 cat "${OUT_DIR}/APK_SIZE_DIFF_RELEASE.tsv"
 cat "${OUT_DIR}/SHA256SUMS.txt"
