@@ -11,6 +11,20 @@ Ordem única de execução do ferreiro RAFCODEΦ:
 7. `./gradlew verifyReleaseContract`
 8. `./scripts/device_runtime_smoke.sh`
 
+## Floresta de hotfixes
+
+A ordem estratégica completa dos hotfixes vive em:
+
+- `docs/HOTFIX_EXECUTION_FOREST.md`
+
+Use esse mapa para decidir o próximo PR sem misturar promessa com prova. Cada hotfix deve manter a sequência:
+
+```text
+vetor → lacuna → hotfix → prova mínima → artefato → promoção epistêmica
+```
+
+Nada deve sair de `TOKEN_VAZIO` para `PROVADO` sem device real, artefato em `reports/` e comando reproduzível.
+
 ## Modo device bloqueante
 
 Para transformar smoke em gate obrigatório:
@@ -44,3 +58,13 @@ Promoção permitida somente depois de passar, em dispositivo real:
 5. `python --version`
 6. `pkg install git`
 7. `git --version`
+
+## Processo/zumbi e hot path RAFAELIA
+
+Para provar vantagem computacional contra fricção de processo, use a floresta H5/H6 antes de afirmar ganho geral:
+
+1. medir 100 execuções shell/processo;
+2. medir 100/1000 execuções JNI/VCPU quando disponível;
+3. capturar `ps -A`, logcat, latência p50/p95/p99 e memória;
+4. salvar artefatos em `reports/`;
+5. manter o estado como `PARCIAL` se a vantagem não estiver demonstrada.
