@@ -9,6 +9,36 @@ REQUIRED = (
     'etc/rafcodephi-core.env', 'BOOTSTRAP_INFO', 'SYMLINKS.txt'
 )
 PREFIX = '/data/data/com.termux.rafacodephi/files/usr'
+LEGACY_PREFIXES = (
+    b'/data/data/com.termux/files/usr',
+    b'/data/data/com.termux/',
+)
+BINARY_RISK = 'LEGACY_PREFIX_BINARY_RISK'
+
+def decode_utf8(data: bytes) -> str | None:
+    if b'\x00' in data:
+        return None
+    try:
+        return data.decode('utf-8')
+    except UnicodeDecodeError:
+        return None
+
+def classify_legacy_prefix(path: Path, entry: str, data: bytes) -> list[str]:
+    errors: list[str] = []
+    found = [prefix for prefix in LEGACY_PREFIXES if prefix in data]
+    if not found:
+        return errors
+    text = decode_utf8(data)
+    for prefix in found:
+        legacy = prefix.decode('utf-8')
+        if text is None:
+            errors.append(
+                f'{path}: {BINARY_RISK}: entry={entry} legacy_prefix={legacy} '
+                'recommendation=rebuild package with RAFCODEΦ prefix or use a safe compatibility strategy; no binary replacement was performed'
+            )
+        else:
+            errors.append(f'{path}: legacy prefix in text entry={entry} legacy_prefix={legacy}')
+    return errors
 
 def check(path: Path) -> list[str]:
     errors=[]
@@ -31,14 +61,17 @@ def check(path: Path) -> list[str]:
         for name in names:
             if name.startswith('/') or '..' in name.split('/'):
                 errors.append(f'{path}: unsafe zip entry {name}')
+        for name in names:
+            if name.endswith('/'):
+                continue
+            data = zf.read(name)
+            errors.extend(classify_legacy_prefix(path, name, data))
         text_names=[n for n in names if n.endswith(('.list','.env','.sh')) or n in ('bin/pkg','bin/proot','etc/resolv.conf')]
         for name in text_names:
             data=zf.read(name)
-            if b'\x00' in data:
+            text=decode_utf8(data)
+            if text is None:
                 continue
-            text=data.decode('utf-8','ignore')
-            if '/data/data/com.termux/files/usr' in text:
-                errors.append(f'{path}: legacy prefix in {name}')
             if name in ('etc/apt/sources.list','etc/rafcodephi-core.env','bin/proot') and PREFIX not in text and name != 'etc/apt/sources.list':
                 errors.append(f'{path}: canonical prefix missing in {name}')
     return errors

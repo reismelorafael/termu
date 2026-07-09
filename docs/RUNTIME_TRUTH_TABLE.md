@@ -6,11 +6,11 @@
 | release assinado | PROVADO | `./gradlew verifyReleaseContract` | segredo oficial no ambiente |
 | bootstrap instala | PARCIAL | `TermuxInstaller` com staging/rollback | teste real em device |
 | `sh` | PARCIAL | bootstrap/wrapper | validar no device |
-| `pkg` | TOKEN_VAZIO | script bridge bootstrap | backend real |
-| `apt` | TOKEN_VAZIO | gerador ARM real criado (`scripts/build_real_arm_bootstrap_core.py`), sem device `pkg update` ainda | backend real validado em device |
-| `apt-get` | TOKEN_VAZIO | gerador ARM real criado (`scripts/build_real_arm_bootstrap_core.py`), sem device `pkg update` ainda | backend real validado em device |
-| `dpkg` | TOKEN_VAZIO | gerador ARM real criado (`scripts/build_real_arm_bootstrap_core.py`), sem device package install ainda | binário real validado em device |
-| `libapt` | TOKEN_VAZIO | dependency closure for `apt` inclui bibliotecas libapt, sem dynamic-link em device ainda | teste dynamic-link em device |
+| `pkg` | TOKEN_VAZIO | script bridge/bootstrap e payload real estrutural, sem device smoke ainda | backend real |
+| `apt` | TOKEN_VAZIO | gerador ARM real criado (`scripts/build_real_arm_bootstrap_core.py`) e validador exige ausência de `LEGACY_PREFIX_BINARY_RISK`, sem device `pkg update` ainda | backend real validado em device |
+| `apt-get` | TOKEN_VAZIO | gerador ARM real criado (`scripts/build_real_arm_bootstrap_core.py`) e auditoria binária conservadora, sem device `pkg update` ainda | backend real validado em device |
+| `dpkg` | TOKEN_VAZIO | gerador ARM real criado (`scripts/build_real_arm_bootstrap_core.py`), sem device package install e sem promoção se houver `LEGACY_PREFIX_BINARY_RISK` | binário real validado em device |
+| `libapt` | TOKEN_VAZIO | dependency closure for `apt` inclui bibliotecas libapt; payload precisa validação em device e auditoria binária limpa | teste dynamic-link em device |
 | `busybox` | PARCIAL | wrapper/delegação para toybox/toolbox quando possível | busybox real ou substituto consistente |
 | `proot` | TOKEN_VAZIO | generator renames real Termux `proot` to `bin/proot.real` and emits `bin/proot` shim, sem device ainda | `proot --version` on device |
 | certificados | TOKEN_VAZIO | generator includes `ca-certificates` package, sem TLS em device ainda | TLS/package update on device |
@@ -26,4 +26,4 @@
 
 ## Frase canônica do bootstrap
 
-O bootstrap atual fornece uma base mínima guardada para instalação e diagnóstico, mas ainda não equivale a uma distribuição Termux completa com backend apt real.
+O bootstrap atual fornece uma base mínima guardada para instalação e diagnóstico; o gerador estrutural existe, mas o payload precisa validação em device e ainda não equivale a uma distribuição Termux completa com backend apt real.
