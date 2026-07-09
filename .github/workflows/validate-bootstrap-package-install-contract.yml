@@ -20,10 +20,12 @@ on:
       - docs/audits/README_RUNTIME_CLAIM_BOUNDARY_HOTFIX.md
       - docs/audits/EXISTING_BOOTSTRAP_ENVIRONMENT_INIT_HOTFIX.md
       - docs/audits/DEVICE_BOOTSTRAP_COMMAND_WRAPPERS_AUDIT.md
+      - docs/audits/REAL_PKG_PROMOTION_CONTRACT.md
       - tools/validate_bootstrap_package_install_contract.py
       - tools/validate_readme_runtime_claim_boundary.py
       - tests/test_bootstrap_package_install_contract.py
       - tests/test_device_pkg_smoke_contract.py
+      - tests/test_real_pkg_promotion_contract.py
       - tests/test_readme_runtime_claim_boundary.py
       - tests/test_android_exec_runtime_contract.py
       - tests/test_bootstrap_fullengine_contract.py
@@ -46,10 +48,12 @@ on:
       - docs/audits/README_RUNTIME_CLAIM_BOUNDARY_HOTFIX.md
       - docs/audits/EXISTING_BOOTSTRAP_ENVIRONMENT_INIT_HOTFIX.md
       - docs/audits/DEVICE_BOOTSTRAP_COMMAND_WRAPPERS_AUDIT.md
+      - docs/audits/REAL_PKG_PROMOTION_CONTRACT.md
       - tools/validate_bootstrap_package_install_contract.py
       - tools/validate_readme_runtime_claim_boundary.py
       - tests/test_bootstrap_package_install_contract.py
       - tests/test_device_pkg_smoke_contract.py
+      - tests/test_real_pkg_promotion_contract.py
       - tests/test_readme_runtime_claim_boundary.py
       - tests/test_android_exec_runtime_contract.py
       - tests/test_bootstrap_fullengine_contract.py
@@ -84,6 +88,9 @@ jobs:
 
       - name: Run device pkg smoke contract tests
         run: python3 -m pytest -q tests/test_device_pkg_smoke_contract.py
+
+      - name: Run real pkg promotion contract tests
+        run: python3 -m pytest -q tests/test_real_pkg_promotion_contract.py
 
       - name: Run Android executable prefix runtime contract test
         run: python3 -m pytest -q tests/test_android_exec_runtime_contract.py
