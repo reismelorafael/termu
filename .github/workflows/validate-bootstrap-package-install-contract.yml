@@ -14,12 +14,16 @@ on:
       - scripts/build_rafaelia_bootstraps.sh
       - scripts/bootstrap_zip_builder.c
       - scripts/smoke_bootstrap_filesystem_proot_busybox_service.sh
+      - scripts/device_pkg_smoke.sh
+      - docs/ENGINEERING_RUNBOOK_RAFCODEPHI.md
+      - docs/RUNTIME_TRUTH_TABLE.md
       - docs/audits/README_RUNTIME_CLAIM_BOUNDARY_HOTFIX.md
       - docs/audits/EXISTING_BOOTSTRAP_ENVIRONMENT_INIT_HOTFIX.md
       - docs/audits/DEVICE_BOOTSTRAP_COMMAND_WRAPPERS_AUDIT.md
       - tools/validate_bootstrap_package_install_contract.py
       - tools/validate_readme_runtime_claim_boundary.py
       - tests/test_bootstrap_package_install_contract.py
+      - tests/test_device_pkg_smoke_contract.py
       - tests/test_readme_runtime_claim_boundary.py
       - tests/test_android_exec_runtime_contract.py
       - tests/test_bootstrap_fullengine_contract.py
@@ -36,12 +40,16 @@ on:
       - scripts/build_rafaelia_bootstraps.sh
       - scripts/bootstrap_zip_builder.c
       - scripts/smoke_bootstrap_filesystem_proot_busybox_service.sh
+      - scripts/device_pkg_smoke.sh
+      - docs/ENGINEERING_RUNBOOK_RAFCODEPHI.md
+      - docs/RUNTIME_TRUTH_TABLE.md
       - docs/audits/README_RUNTIME_CLAIM_BOUNDARY_HOTFIX.md
       - docs/audits/EXISTING_BOOTSTRAP_ENVIRONMENT_INIT_HOTFIX.md
       - docs/audits/DEVICE_BOOTSTRAP_COMMAND_WRAPPERS_AUDIT.md
       - tools/validate_bootstrap_package_install_contract.py
       - tools/validate_readme_runtime_claim_boundary.py
       - tests/test_bootstrap_package_install_contract.py
+      - tests/test_device_pkg_smoke_contract.py
       - tests/test_readme_runtime_claim_boundary.py
       - tests/test_android_exec_runtime_contract.py
       - tests/test_bootstrap_fullengine_contract.py
@@ -74,6 +82,9 @@ jobs:
       - name: Run busybox applet wrapper tests
         run: python3 -m pytest -q tests/test_bootstrap_busybox_applet_wrappers.py
 
+      - name: Run device pkg smoke contract tests
+        run: python3 -m pytest -q tests/test_device_pkg_smoke_contract.py
+
       - name: Run Android executable prefix runtime contract test
         run: python3 -m pytest -q tests/test_android_exec_runtime_contract.py
 
@@ -104,7 +115,7 @@ jobs:
               'rewritten-bootstrap-aarch64.zip',
               'rewritten-bootstrap-arm.zip',
               'rewritten-bootstrap-i686.zip',
-              'rewritten-bootstrap-x86_64.zip',
+              'rewritten-bootstrap_x86_64.zip'.replace('_x86', '-x86'),
           ]
           command_wrappers = {
               'bin/cat', 'bin/ls', 'bin/clear', 'bin/head', 'bin/tail',
