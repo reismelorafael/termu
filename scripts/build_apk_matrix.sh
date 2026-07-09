@@ -29,6 +29,7 @@ detect_apk_abi() {
 
 cd "${ROOT_DIR}"
 source "${ROOT_DIR}/scripts/abi_policy_lib.sh"
+required_abis=( $(abi_policy_required_array) )
 
 info "Applying Android boot hotfixes"
 python3 "${ROOT_DIR}/scripts/apply_android_boot_hotfixes.py"
@@ -51,13 +52,42 @@ info "Validating RAFCODEPHI packages source contract"
 ./scripts/validate_rafcodephi_packages_source.sh
 
 info "Preparing bootstrap environment and BLAKE3 vars"
-export RAF_BOOTSTRAP_SOURCE="${RAF_BOOTSTRAP_SOURCE:-termux-packagesRafcodephi-source-contract}"
+# `validate_rafcodephi_packages_source.sh` validates the pinned package source
+# contract. `prepare_bootstrap_env.sh` only accepts bootstrap payload sources
+# (`local` or `upstream`).  A previous beta path used the package-source
+# contract marker as RAF_BOOTSTRAP_SOURCE, which made the APK matrix fail
+# before Gradle could generate any APKs.  Normalize that legacy value back to
+# local bootstrap generation while preserving explicit `upstream` requests.
+BOOTSTRAP_SOURCE_REQUESTED="${RAF_BOOTSTRAP_SOURCE:-local}"
+case "${BOOTSTRAP_SOURCE_REQUESTED}" in
+  local|upstream)
+    ;;
+  termux-packagesRafcodephi-source-contract)
+    info "RAF_BOOTSTRAP_SOURCE=${BOOTSTRAP_SOURCE_REQUESTED} is a package-source contract marker; using local bootstrap payload generation"
+    BOOTSTRAP_SOURCE_REQUESTED="local"
+    ;;
+  *)
+    fail "RAF_BOOTSTRAP_SOURCE must be local or upstream, got ${BOOTSTRAP_SOURCE_REQUESTED}"
+    ;;
+esac
+export RAF_BOOTSTRAP_SOURCE="${BOOTSTRAP_SOURCE_REQUESTED}"
 info "Using RAF_BOOTSTRAP_SOURCE=${RAF_BOOTSTRAP_SOURCE}"
 bootstrap_env_output="$(./scripts/prepare_bootstrap_env.sh --print-env)" || fail "Bootstrap environment setup failed"
 eval "${bootstrap_env_output}" || fail "Failed to evaluate bootstrap environment"
 
-info "Validating BLAKE3 environment variables"
-for v in AARCH64 ARM I686 X86_64; do
+bootstrap_hash_keys=()
+for abi in "${required_abis[@]}"; do
+  case "${abi}" in
+    arm64-v8a) bootstrap_hash_keys+=(AARCH64) ;;
+    armeabi-v7a) bootstrap_hash_keys+=(ARM) ;;
+    x86_64) bootstrap_hash_keys+=(X86_64) ;;
+    x86) bootstrap_hash_keys+=(I686) ;;
+    *) fail "Unsupported ABI in policy: ${abi}" ;;
+  esac
+done
+
+info "Validating BLAKE3 environment variables for required ABIs: ${required_abis[*]}"
+for v in "${bootstrap_hash_keys[@]}"; do
   var="TERMUX_BOOTSTRAP_BLAKE3_${v}"
   val="${!var:-}"
   [[ -n "$val" ]] || fail "${var} is not set"
@@ -74,7 +104,6 @@ TERMUX_SPLIT_APKS_FOR_DEBUG_BUILDS=1 TERMUX_SPLIT_APKS_FOR_RELEASE_BUILDS=1 ./gr
 cp app/build/outputs/apk/debug/*.apk "${UNSIGNED_DIR}/"
 cp app/build/outputs/apk/release/*.apk "${UNSIGNED_DIR}/"
 
-required_abis=( $(abi_policy_required_array) )
 for abi in "${required_abis[@]}"; do
   count=$(find "${UNSIGNED_DIR}" -maxdepth 1 -type f -name "*${abi}*.apk" | wc -l | tr -d ' ')
   [[ "${count}" -gt 0 ]] || fail "${abi} APK was not generated"
