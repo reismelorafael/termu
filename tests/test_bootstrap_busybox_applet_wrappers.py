@@ -49,6 +49,16 @@ def test_busybox_bridge_requires_explicit_applet_and_wrappers_supply_it() -> Non
         assert command in source
 
 
+def test_busybox_bridge_uses_absolute_android_tools_without_prefix_recursion() -> None:
+    source = BUILD_SCRIPT.read_text(encoding="utf-8")
+
+    assert "exec /system/bin/toybox \"$applet\" \"$@\"" in source
+    assert "exec /system/bin/toolbox \"$applet\" \"$@\"" in source
+    assert "exec /system/bin/\"$applet\" \"$@\"" in source
+    assert "exec /system/xbin/\"$applet\" \"$@\"" in source
+    assert 'command -v "$applet"' not in source
+
+
 def test_zip_builder_makes_command_wrappers_installable_entries() -> None:
     source = BUILDER.read_text(encoding="utf-8")
 
