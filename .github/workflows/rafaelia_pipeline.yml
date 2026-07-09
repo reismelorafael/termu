@@ -587,7 +587,7 @@ jobs:
             [[ -n "${generated_abi_set[$abi]:-}" ]]
           }
 
-          mandatory_abis=(arm64-v8a armeabi-v7a x86_64)
+          mandatory_abis=(arm64-v8a armeabi-v7a)
           if abi_generated universal; then
             mandatory_abis+=(universal)
           fi

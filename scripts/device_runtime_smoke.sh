@@ -66,3 +66,8 @@ cat > reports/device_runtime_smoke.md <<MD
 - zombie_orphan_notes: $zombie_notes
 - final_status: $final_status
 MD
+
+if [[ "${DEVICE_SMOKE_REQUIRED:-false}" == "true" && "$final_status" != "DEVICE_VALIDATED" ]]; then
+  echo "DEVICE_SMOKE_REQUIRED=true final_status=$final_status (expected DEVICE_VALIDATED)" >&2
+  exit 1
+fi

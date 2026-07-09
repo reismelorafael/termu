@@ -51,7 +51,7 @@ Este documento registra o entendimento operacional que deve acompanhar mudanças
 
 ## Política Android/NDK/ABI
 
-- O `targetSdkVersion` oficial do projeto permanece em **34** até a próxima rodada de validação Android moderno.
+- O `targetSdkVersion` oficial do projeto permanece em **28** até a próxima rodada de validação Android moderno.
 - O APK mantém `minSdkVersion=21` para não quebrar instalação/splits existentes; a política ARM32 API 28 é carregada no `BOOTSTRAP_INFO` do bootstrap local (`TERMUX_MIN_API=28` para `arm`).
 - O `compileSdkVersion` pode ser maior que o target para compilar APIs recentes sem mudar automaticamente as obrigações de runtime.
 - O `ndkVersion` deve continuar fixo/reprodutível por propriedade ou variável de ambiente controlada, nunca por descoberta implícita.
