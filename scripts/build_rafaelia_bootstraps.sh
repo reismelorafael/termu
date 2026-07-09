@@ -12,7 +12,7 @@ generated_root="${ROOT_DIR}/build/generated/rafaelia-bootstrap/common"
 prefix="/data/data/${TERMUX_BOOTSTRAP_PACKAGE_NAME}/files/usr"
 trap 'rm -f "$builder"' EXIT
 
-mkdir -p "${generated_root}/bin" "${generated_root}/etc" app/src/main/cpp
+mkdir -p "${generated_root}/bin" "${generated_root}/etc" "${generated_root}/lib" "${generated_root}/tmp" "${generated_root}/var" app/src/main/cpp
 
 emit_wrapper_header() {
     printf '#!/system/bin/sh\nPREFIX="${PREFIX:-%s}"\n' "$prefix"

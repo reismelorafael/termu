@@ -105,11 +105,12 @@ int main(int argc,char**argv){
   const char* marker="BUILD_ONLY=0\nRUNTIME_READY=1\nBOOTSTRAP_PACKAGE_INSTALLABLE=1\nFULLENGINE_READY=1\nCOMMAND_WRAPPERS_READY=1\n";
   uint32_t build_only_n=(uint32_t)snprintf((char*)build_only_buf,sizeof(build_only_buf),"%s",marker);
   E e[]={
-    {"BOOTSTRAP_INFO",(uint8_t*)info,(uint32_t)info_n,0,0,0600},{"SYMLINKS.txt",symlinks_buf,(uint32_t)(sizeof(symlinks_buf)-1),0,0,0600},{"BUILD_ONLY",build_only_buf,build_only_n,0,0,0600},
-    {"bin/sh",sh_buf,sh_n,0,0,0700},{"bin/pkg",pkg_buf,pkg_n,0,0,0700},{"bin/busybox",busybox_buf,busybox_n,0,0,0700},{"bin/proot",proot_buf,proot_n,0,0,0700},
-    {"bin/apt",apt_buf,apt_n,0,0,0700},{"bin/apt-get",apt_get_buf,apt_get_n,0,0,0700},{"bin/apkmanager",apkmanager_buf,apkmanager_n,0,0,0700},
-    {"bin/shellbash",shellbash_buf,shellbash_n,0,0,0700},{"bin/busybox-safe",busybox_safe_buf,busybox_safe_n,0,0,0700},{"bin/proot-safe",proot_safe_buf,proot_safe_n,0,0,0700},
-    {"bin/rafcodephi-compat-hotfix",(uint8_t*)compat_buf,(uint32_t)strlen(compat_buf),0,0,0700},{"etc/motd",motd_buf,motd_n,0,0,0600}
+    {"bin/",0,0,0,0,0040700},{"etc/",0,0,0,0,0040700},{"lib/",0,0,0,0,0040700},{"tmp/",0,0,0,0,0040700},{"var/",0,0,0,0,0040700},
+    {"BOOTSTRAP_INFO",(uint8_t*)info,(uint32_t)info_n,0,0,0100600},{"SYMLINKS.txt",symlinks_buf,(uint32_t)(sizeof(symlinks_buf)-1),0,0,0100600},{"BUILD_ONLY",build_only_buf,build_only_n,0,0,0100600},
+    {"bin/sh",sh_buf,sh_n,0,0,0100700},{"bin/pkg",pkg_buf,pkg_n,0,0,0100700},{"bin/busybox",busybox_buf,busybox_n,0,0,0100700},{"bin/proot",proot_buf,proot_n,0,0,0100700},
+    {"bin/apt",apt_buf,apt_n,0,0,0100700},{"bin/apt-get",apt_get_buf,apt_get_n,0,0,0100700},{"bin/apkmanager",apkmanager_buf,apkmanager_n,0,0,0100700},
+    {"bin/shellbash",shellbash_buf,shellbash_n,0,0,0100700},{"bin/busybox-safe",busybox_safe_buf,busybox_safe_n,0,0,0100700},{"bin/proot-safe",proot_safe_buf,proot_safe_n,0,0,0100700},
+    {"bin/rafcodephi-compat-hotfix",(uint8_t*)compat_buf,(uint32_t)strlen(compat_buf),0,0,0100700},{"etc/motd",motd_buf,motd_n,0,0,0100600}
   };
   const int n_entries=(int)(sizeof(e)/sizeof(e[0]));
 
@@ -122,7 +123,7 @@ int main(int argc,char**argv){
   }
   uint32_t cdir_off=off;
   for(int i=0;i<n_entries;i++){
-    uint8_t c[46]; memset(c,0,sizeof(c)); le32(c,0x02014b50); le16(c+4,0x031e); le16(c+6,20); le32(c+16,e[i].crc); le32(c+20,e[i].size); le32(c+24,e[i].size); le16(c+28,(uint16_t)strlen(e[i].name)); le32(c+38,((0100000u|e[i].mode)<<16)); le32(c+42,e[i].off);
+    uint8_t c[46]; memset(c,0,sizeof(c)); le32(c,0x02014b50); le16(c+4,0x031e); le16(c+6,20); le32(c+16,e[i].crc); le32(c+20,e[i].size); le32(c+24,e[i].size); le16(c+28,(uint16_t)strlen(e[i].name)); le32(c+38,(e[i].mode<<16)); le32(c+42,e[i].off);
     if(w(fd,c,46)||w(fd,e[i].name,strlen(e[i].name))){close(fd);return 5;} off += 46 + (uint32_t)strlen(e[i].name);
   }
   uint32_t cdir_sz=off-cdir_off;
