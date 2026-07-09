@@ -13,7 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - run: ./scripts/device_runtime_smoke.sh "${{ inputs.apk_path }}" || true
+      - name: Device smoke (report mode)
+        if: ${{ vars.DEVICE_SMOKE_REQUIRED != 'true' }}
+        run: ./scripts/device_runtime_smoke.sh "${{ inputs.apk_path }}" || true
+      - name: Device smoke (required gate)
+        if: ${{ vars.DEVICE_SMOKE_REQUIRED == 'true' }}
+        env:
+          DEVICE_SMOKE_REQUIRED: 'true'
+        run: ./scripts/device_runtime_smoke.sh "${{ inputs.apk_path }}"
       - uses: actions/upload-artifact@v7
         with:
           name: device-runtime-reports

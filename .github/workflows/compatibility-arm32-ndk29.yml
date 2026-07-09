@@ -32,7 +32,7 @@ jobs:
       - name: Validate Gradle SDK/NDK contract
         run: |
           test "$(awk -F= '/^minSdkVersion=/{print $2}' gradle.properties)" = "21"
-          test "$(awk -F= '/^targetSdkVersion=/{print $2}' gradle.properties)" = "34"
+          test "$(awk -F= '/^targetSdkVersion=/{print $2}' gradle.properties)" = "28"
           test "$(awk -F= '/^compileSdkVersion=/{print $2}' gradle.properties)" = "35"
           test "${JITPACK_NDK_VERSION}" = "29.0.14206865"
 
@@ -64,7 +64,7 @@ jobs:
         run: |
           grep -q "package: name='com.termux.rafacodephi'" dist/arm32-compatibility-ndk29/apk-badging.txt
           grep -q "sdkVersion:'21'" dist/arm32-compatibility-ndk29/apk-badging.txt
-          grep -q "targetSdkVersion:'34'" dist/arm32-compatibility-ndk29/apk-badging.txt
+          grep -q "targetSdkVersion:'28'" dist/arm32-compatibility-ndk29/apk-badging.txt
           grep -q 'native-code:.*armeabi-v7a' dist/arm32-compatibility-ndk29/apk-badging.txt
           grep -q 'lib/armeabi-v7a/' dist/arm32-compatibility-ndk29/native-libs.txt
           grep -q 'lib/armeabi-v7a/' dist/arm32-compatibility-ndk29/universal-libs.txt

@@ -83,7 +83,7 @@ Quando o Android expõe `Processors: 8`, o auditor deve explorar:
 
 ### 6. Compatibilidade futura sem perder base atual
 
-A combinação de `minSdk 21`, `targetSdk 35`, page size atual de 4096 e alinhamento nativo para 16 KB indica postura compatível com dispositivos atuais e futuros.
+A combinação de `minSdk 21`, `targetSdk 28`, page size atual de 4096 e alinhamento nativo para 16 KB indica postura compatível com dispositivos atuais e futuros.
 
 O auditor deve diferenciar:
 

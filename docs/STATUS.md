@@ -1,48 +1,65 @@
 # STATUS (Fonte de Verdade de Build/Release)
 
-> Última revisão: 2026-05-14 (UTC)
+> Última revisão: 2026-07-09 (UTC)
 
-Este documento consolida o estado **real e verificável** do pipeline Android (Gradle + NDK + CI) desta fork.
+Este documento consolida o estado **real e verificável** do pipeline Android (Gradle + NDK + CI) desta fork. A regra é separar promessa de prova: quando não houver backend ou teste real, o estado fica marcado como `TOKEN_VAZIO`, `PARCIAL`, `EXPERIMENTAL` ou `FUTURO`.
 
-## 1) Estado atual (pronto)
+## Verdade canônica atual
 
-- ✅ Build Android configurado com `compileSdkVersion=35`, `targetSdkVersion=34`, `minSdkVersion=21`.  
-- ✅ Toolchain nativa fixada: `ndkVersion=26.3.11579264` via `gradle.properties`.  
-- ✅ Política canônica de ABI definida em fonte única (`gradle.properties`): `armeabi-v7a`, `arm64-v8a`, `x86_64` + `x86` opcional + universal habilitado.  
-- ✅ Script de matriz local (`scripts/build_apk_matrix.sh`) produz artefatos **unsigned** e **signed**, valida assinatura e gera relatórios/checksums.  
-- ✅ Workflow CI (`.github/workflows/apk_matrix_build.yml`) publica APKs e relatórios com separação de trilha `official` vs `internal`.
+- `compileSdkVersion=35`
+- `targetSdkVersion=28`
+- `minSdkVersion=21`
+- ABIs obrigatórias: `armeabi-v7a`, `arm64-v8a`
+- `universalApk=true`
+- package/applicationId: `com.termux.rafacodephi`
 
-## 2) Contratos estruturais ativos
+## Estado epistêmico fixo
 
-### ABI / Arquitetura
-- ABIs obrigatórias para trilha de release: `armeabi-v7a` e `arm64-v8a`.
-- `x86_64` e `x86` seguem política de compatibilidade/expansão, sem quebrar o contrato mínimo móvel (ARM32 + ARM64).
+- **PROVADO**: evidência executável/CI/local confirma o contrato.
+- **PROVADO ESTRUTURAL**: código/contrato existe e é validável estruturalmente, mas ainda pede benchmark/device real para produção.
+- **PARCIAL**: parte funciona, mas falta validação de ambiente real ou dependência externa.
+- **TOKEN_VAZIO**: wrapper/ponte/nome existe, mas backend real ainda não foi entregue; é melhor explicitar isso do que simular verdade.
+- **EXPERIMENTAL**: implementação em exploração, sem contrato de release.
+- **FUTURO**: item planejado, não pronto.
 
-### Assinatura
-- Trilha **official** exige segredo de assinatura oficial e bloqueia release sem assinatura válida.
-- Trilha **internal** permite unsigned para validação, mantendo signed release obrigatório para ABIs críticas.
+## Runtime e bootstrap
 
-### Integridade de artefato
-- `SHA256SUMS.txt`, `ARTIFACT_MANIFEST.txt`, `APK_SIZE_REPORT.tsv` e `APK_SIZE_DIFF_RELEASE.tsv` são gerados no diretório `dist/apk-matrix/`.
-- `verifyReleaseContract` roda no CI antes de upload final.
+O bootstrap atual fornece uma base mínima guardada para instalação e diagnóstico, mas ainda não equivale a uma distribuição Termux completa com backend apt real.
 
-## 3) O que ainda depende de execução no ambiente
+- `bin/sh`: existe como wrapper/base mínima quando presente no payload.
+- `bin/pkg`: existe como bridge operacional.
+- `bin/apt` e `bin/apt-get`: dependem de backend real (`apt`, `dpkg`, `libapt`, repositório e certificados) para instalação real.
+- `bin/busybox`: deve delegar para `toybox`/`toolbox` quando possível, ou ser substituído por busybox real.
+- `bin/proot`: precisa de `proot.real` ou equivalente para ser considerado pronto.
 
-- 🔶 A compilação real de APK (local/CI) depende de SDK/NDK/CMake provisionados no host.
-- 🔶 A assinatura oficial depende de `OFFICIAL_*` secrets no GitHub Actions.
+## Zero-malloc: limite honesto
 
-## 4) Fonte de verdade (arquivos canônicos)
+Zero-malloc confirmado:
 
-- Build e versões Android/NDK: `gradle.properties`
-- Matriz local signed/unsigned: `scripts/build_apk_matrix.sh`
-- Pipeline de upload e contratos CI: `.github/workflows/apk_matrix_build.yml`
-- Visão macro do projeto: `README.md`
+- RAFAELIA Direct JNI arena.
+- CTI scanner.
+- ZIPRAF manifest quando usado estaticamente.
+- VCPU state kernel.
 
-## 5) Regra de manutenção deste status
+Não zero-malloc:
 
-Sempre atualizar este arquivo **após** mudanças em:
-- versão de SDK/NDK/JDK,
-- política de ABI,
-- regras de assinatura,
-- workflow de artefatos,
-- contratos de validação de release.
+- `baremetal.c` default em matrizes/arena.
+- Java side.
+- `TermuxInstaller`.
+- bootstrap extraction.
+
+## ZIPRAF
+
+ZIPRAF não comprime fisicamente. ZIPRAF cria endereçamento lógico multirresolução sobre bytes existentes. Portanto, a forma correta de documentar é: **1 GB físico pode ser exposto como 264 GB de espaço lógico endereçável, sem aumentar os bytes físicos armazenados.**
+
+## VCPU
+
+Nome técnico atual: **RAFAELIA deterministic VCPU state kernel** / **VCPU telemétrica determinística**. Ainda não é VM completa. Para virar VM completa faltam bytecode, registradores, memória, instruções, loader, executor, syscall table, testes, dump de estado e replay determinístico.
+
+## Fonte de verdade (arquivos canônicos)
+
+- Build e versões Android/NDK: `gradle.properties`.
+- Matriz signed/unsigned: `scripts/build_apk_matrix.sh`.
+- Contrato operacional: `docs/RUNTIME_TRUTH_TABLE.md`.
+- Runbook: `docs/ENGINEERING_RUNBOOK_RAFCODEPHI.md`.
+- Visão macro do projeto: `README.md`.

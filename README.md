@@ -29,7 +29,7 @@ This fork complies with the GPLv3 license of the original Termux project. All mo
 [![Termux library releases at Jitpack](https://jitpack.io/v/termux/termux-app.svg)](https://jitpack.io/#termux/termux-app)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Platform](https://img.shields.io/badge/platform-Android%207%2B-brightgreen)](https://developer.android.com)
-[![Architecture](https://img.shields.io/badge/arch-ARM32%20%7C%20ARM64%20%7C%20x86__64-orange)](rmr/Rrr/Android_nomalloc.mk)
+[![Architecture](https://img.shields.io/badge/arch-ARM32%20%7C%20ARM64-orange)](rmr/Rrr/Android_nomalloc.mk)
 [![C11 nomalloc](https://img.shields.io/badge/C-C11%20zero--malloc-blueviolet)](rmr/Rrr/cti_raw_reader.h)
 [![CTI BITSTACK](https://img.shields.io/badge/RAFAELIA-CTI%20BITSTACK-critical)](rmr/Rrr/cti_raw_reader.c)
 [![ZIPRAF](https://img.shields.io/badge/RAFAELIA-ZIPRAF%20Manifesto-critical)](rmr/Rrr/zipraf_index.c)
@@ -51,6 +51,27 @@ Quick how-to about Termux package management is available at [Package Management
 
 ***
 
+
+## Verdade operacional canônica
+
+- `compileSdkVersion=35`
+- `targetSdkVersion=28`
+- `minSdkVersion=21`
+- ABIs obrigatórias: `armeabi-v7a`, `arm64-v8a`
+- `universalApk=true`
+- package/applicationId: `com.termux.rafacodephi`
+
+### Estado epistêmico
+
+- **PROVADO**: build/release/contrato validado por comando ou CI.
+- **PARCIAL**: existe base funcional, mas falta validação real completa.
+- **TOKEN_VAZIO**: wrapper/bridge existe sem backend real. `pkg`, `apt`, `apt-get`, `dpkg`, `libapt` e `proot` permanecem nesta classe até o payload core real e testes `pkg update`/`pkg install`.
+- **EXPERIMENTAL**: pesquisa/otimização sem contrato de release.
+- **FUTURO**: planejado.
+
+O bootstrap atual fornece uma base mínima guardada para instalação e diagnóstico, mas ainda não equivale a uma distribuição Termux completa com backend apt real. A descrição correta é **Termux-compatible bootstrap shell environment** até pacote real ser provado.
+
+ZIPRAF não comprime fisicamente; cria endereçamento lógico multirresolução sobre bytes existentes. A VCPU atual é uma **RAFAELIA deterministic VCPU state kernel**, não uma VM completa.
 
 ## Fork Contract: Upstream vs RAFCODEΦ
 
