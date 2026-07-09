@@ -80,6 +80,9 @@ jobs:
         id: apk_matrix
         if: ${{ always() && (github.event_name != 'workflow_dispatch' || inputs.build_apk_matrix) }}
         continue-on-error: true
+        env:
+          RAF_BOOTSTRAP_SOURCE: local
+          RELEASE_TRACK: internal
         run: ./scripts/build_apk_matrix.sh
 
       - name: Build bootstrap baremetal guard smoke
