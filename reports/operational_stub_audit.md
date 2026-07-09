@@ -1,7 +1,7 @@
 # Operational Stub Audit
 
 - scan_depth: 5
-- hit_count: 10259
+- hit_count: 10262
 - scope: structural repository scan only; no runtime proof claimed
 - falsification: audit is stale if new source files are added beyond the bounded scan or runtime tests contradict structural markers
 
@@ -9,9 +9,38 @@
 
 - failsafe_failover_rollback: 9175
 - heap_forbidden_hotpath: 580
-- missing_or_absence: 253
+- missing_or_absence: 256
 - stub_or_placeholder: 107
 - vectra_risk_marker: 144
+
+## APK/Termux install readiness
+
+| Component | Status | Path | Evidence | Mitigation |
+|---|---|---|---|---|
+| apk_application_id | PASS | `app/build.gradle` | contains token: com.termux.rafacodephi | keep covered by audit and runtime smoke |
+| apk_bootstrap_generation_task | PASS | `app/build.gradle` | contains token: generateRafcodephiBootstraps | keep covered by audit and runtime smoke |
+| apk_bootstrap_zip_inputs | PASS | `app/build.gradle` | contains token: rewritten-bootstrap-aarch64.zip | keep covered by audit and runtime smoke |
+| apk_16kb_page_flag | PASS | `app/src/main/cpp/Android.mk` | contains token: max-page-size=16384 | keep covered by audit and runtime smoke |
+| apk_native_bootstrap_library | PASS | `app/src/main/cpp/Android.mk` | contains token: libtermux-bootstrap | keep covered by audit and runtime smoke |
+| apk_baremetal_library | PASS | `app/src/main/cpp/Android.mk` | contains token: termux-baremetal | keep covered by audit and runtime smoke |
+| termux_launcher_activity | PASS | `app/src/main/AndroidManifest.xml` | contains token: com.termux.app.TermuxActivity | keep covered by audit and runtime smoke |
+| termux_foreground_service | PASS | `app/src/main/AndroidManifest.xml` | contains token: com.termux.app.TermuxService | keep covered by audit and runtime smoke |
+| termux_run_command_service | PASS | `app/src/main/AndroidManifest.xml` | contains token: com.termux.app.RunCommandService | keep covered by audit and runtime smoke |
+| termux_documents_provider | PASS | `app/src/main/AndroidManifest.xml` | contains token: TermuxDocumentsProvider | keep covered by audit and runtime smoke |
+| termux_install_shell | PASS | `scripts/build_rafaelia_bootstraps.sh` | contains token: bin/sh | keep covered by audit and runtime smoke |
+| termux_install_pkg | PASS | `scripts/build_rafaelia_bootstraps.sh` | contains token: bin/pkg | keep covered by audit and runtime smoke |
+| termux_install_apt | PASS | `scripts/build_rafaelia_bootstraps.sh` | contains token: bin/apt | keep covered by audit and runtime smoke |
+| termux_install_busybox | PASS | `scripts/build_rafaelia_bootstraps.sh` | contains token: bin/busybox | keep covered by audit and runtime smoke |
+| termux_install_proot | PASS | `scripts/build_rafaelia_bootstraps.sh` | contains token: bin/proot | keep covered by audit and runtime smoke |
+| termux_prefix_side_by_side | PASS | `scripts/build_rafaelia_bootstraps.sh` | contains token: /data/data/com.termux.rafacodephi/files/usr | keep covered by audit and runtime smoke |
+| generated_bootstrap_zip | PASS | `app/src/main/cpp/rewritten-bootstrap-aarch64.zip` | generated artifact exists | keep generated artifact fresh |
+| generated_bootstrap_zip | PASS | `app/src/main/cpp/rewritten-bootstrap-arm.zip` | generated artifact exists | keep generated artifact fresh |
+| generated_bootstrap_zip | PASS | `app/src/main/cpp/rewritten-bootstrap-i686.zip` | generated artifact exists | keep generated artifact fresh |
+| generated_bootstrap_zip | PASS | `app/src/main/cpp/rewritten-bootstrap-x86_64.zip` | generated artifact exists | keep generated artifact fresh |
+
+## Readiness counts
+
+- PASS: 20
 
 ## Highest-hit files
 
@@ -58,7 +87,7 @@
 | `docs/06_PLANO_ACAO_EXECUCAO.md` | 11 |
 | `rafaelia/old/bootstrap.sh` | 11 |
 
-## Hit sample (first 500 of 10259)
+## Hit sample (first 500 of 10262)
 
 | Path | Line | Category | Excerpt |
 |---|---:|---|---|

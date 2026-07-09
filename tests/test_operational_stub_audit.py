@@ -25,3 +25,18 @@ def test_operational_stub_audit_keeps_vectra_known_risks_visible() -> None:
     text = SCRIPT.read_text(encoding="utf-8")
     for token in ["VOID paradox", "attractor_table", "period-42", "BitOmega"]:
         assert token in text
+
+
+def test_operational_stub_audit_tracks_apk_termux_install_readiness() -> None:
+    text = SCRIPT.read_text(encoding="utf-8")
+    for token in [
+        "apk_termux_readiness",
+        "apk_bootstrap_generation_task",
+        "termux_install_shell",
+        "termux_install_pkg",
+        "termux_install_apt",
+        "termux_prefix_side_by_side",
+        "generateRafcodephiBootstraps",
+        "/data/data/com.termux.rafacodephi/files/usr",
+    ]:
+        assert token in text

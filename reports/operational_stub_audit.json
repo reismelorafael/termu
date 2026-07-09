@@ -1,6 +1,148 @@
 {
+  "apk_termux_readiness": [
+    {
+      "component": "apk_application_id",
+      "evidence": "contains token: com.termux.rafacodephi",
+      "mitigation": "keep covered by audit and runtime smoke",
+      "path": "app/build.gradle",
+      "status": "PASS"
+    },
+    {
+      "component": "apk_bootstrap_generation_task",
+      "evidence": "contains token: generateRafcodephiBootstraps",
+      "mitigation": "keep covered by audit and runtime smoke",
+      "path": "app/build.gradle",
+      "status": "PASS"
+    },
+    {
+      "component": "apk_bootstrap_zip_inputs",
+      "evidence": "contains token: rewritten-bootstrap-aarch64.zip",
+      "mitigation": "keep covered by audit and runtime smoke",
+      "path": "app/build.gradle",
+      "status": "PASS"
+    },
+    {
+      "component": "apk_16kb_page_flag",
+      "evidence": "contains token: max-page-size=16384",
+      "mitigation": "keep covered by audit and runtime smoke",
+      "path": "app/src/main/cpp/Android.mk",
+      "status": "PASS"
+    },
+    {
+      "component": "apk_native_bootstrap_library",
+      "evidence": "contains token: libtermux-bootstrap",
+      "mitigation": "keep covered by audit and runtime smoke",
+      "path": "app/src/main/cpp/Android.mk",
+      "status": "PASS"
+    },
+    {
+      "component": "apk_baremetal_library",
+      "evidence": "contains token: termux-baremetal",
+      "mitigation": "keep covered by audit and runtime smoke",
+      "path": "app/src/main/cpp/Android.mk",
+      "status": "PASS"
+    },
+    {
+      "component": "termux_launcher_activity",
+      "evidence": "contains token: com.termux.app.TermuxActivity",
+      "mitigation": "keep covered by audit and runtime smoke",
+      "path": "app/src/main/AndroidManifest.xml",
+      "status": "PASS"
+    },
+    {
+      "component": "termux_foreground_service",
+      "evidence": "contains token: com.termux.app.TermuxService",
+      "mitigation": "keep covered by audit and runtime smoke",
+      "path": "app/src/main/AndroidManifest.xml",
+      "status": "PASS"
+    },
+    {
+      "component": "termux_run_command_service",
+      "evidence": "contains token: com.termux.app.RunCommandService",
+      "mitigation": "keep covered by audit and runtime smoke",
+      "path": "app/src/main/AndroidManifest.xml",
+      "status": "PASS"
+    },
+    {
+      "component": "termux_documents_provider",
+      "evidence": "contains token: TermuxDocumentsProvider",
+      "mitigation": "keep covered by audit and runtime smoke",
+      "path": "app/src/main/AndroidManifest.xml",
+      "status": "PASS"
+    },
+    {
+      "component": "termux_install_shell",
+      "evidence": "contains token: bin/sh",
+      "mitigation": "keep covered by audit and runtime smoke",
+      "path": "scripts/build_rafaelia_bootstraps.sh",
+      "status": "PASS"
+    },
+    {
+      "component": "termux_install_pkg",
+      "evidence": "contains token: bin/pkg",
+      "mitigation": "keep covered by audit and runtime smoke",
+      "path": "scripts/build_rafaelia_bootstraps.sh",
+      "status": "PASS"
+    },
+    {
+      "component": "termux_install_apt",
+      "evidence": "contains token: bin/apt",
+      "mitigation": "keep covered by audit and runtime smoke",
+      "path": "scripts/build_rafaelia_bootstraps.sh",
+      "status": "PASS"
+    },
+    {
+      "component": "termux_install_busybox",
+      "evidence": "contains token: bin/busybox",
+      "mitigation": "keep covered by audit and runtime smoke",
+      "path": "scripts/build_rafaelia_bootstraps.sh",
+      "status": "PASS"
+    },
+    {
+      "component": "termux_install_proot",
+      "evidence": "contains token: bin/proot",
+      "mitigation": "keep covered by audit and runtime smoke",
+      "path": "scripts/build_rafaelia_bootstraps.sh",
+      "status": "PASS"
+    },
+    {
+      "component": "termux_prefix_side_by_side",
+      "evidence": "contains token: /data/data/com.termux.rafacodephi/files/usr",
+      "mitigation": "keep covered by audit and runtime smoke",
+      "path": "scripts/build_rafaelia_bootstraps.sh",
+      "status": "PASS"
+    },
+    {
+      "component": "generated_bootstrap_zip",
+      "evidence": "generated artifact exists",
+      "mitigation": "keep generated artifact fresh",
+      "path": "app/src/main/cpp/rewritten-bootstrap-aarch64.zip",
+      "status": "PASS"
+    },
+    {
+      "component": "generated_bootstrap_zip",
+      "evidence": "generated artifact exists",
+      "mitigation": "keep generated artifact fresh",
+      "path": "app/src/main/cpp/rewritten-bootstrap-arm.zip",
+      "status": "PASS"
+    },
+    {
+      "component": "generated_bootstrap_zip",
+      "evidence": "generated artifact exists",
+      "mitigation": "keep generated artifact fresh",
+      "path": "app/src/main/cpp/rewritten-bootstrap-i686.zip",
+      "status": "PASS"
+    },
+    {
+      "component": "generated_bootstrap_zip",
+      "evidence": "generated artifact exists",
+      "mitigation": "keep generated artifact fresh",
+      "path": "app/src/main/cpp/rewritten-bootstrap-x86_64.zip",
+      "status": "PASS"
+    }
+  ],
   "falsification": "Audit is stale if new source files are added beyond the bounded scan or runtime tests contradict structural markers.",
-  "hit_count": 10259,
+  "hit_count": 10262,
   "hits_sample": [
     {
       "category": "missing_or_absence",
