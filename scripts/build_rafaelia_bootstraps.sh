@@ -135,18 +135,53 @@ if [ $# -eq 0 ]; then
 fi
 applet="$1"
 shift
-if command -v toybox >/dev/null 2>&1; then
-    exec toybox "$applet" "$@"
+if [ -x /system/bin/toybox ]; then
+    exec /system/bin/toybox "$applet" "$@"
 fi
-if command -v toolbox >/dev/null 2>&1; then
-    exec toolbox "$applet" "$@"
+if [ -x /system/bin/toolbox ]; then
+    exec /system/bin/toolbox "$applet" "$@"
 fi
-if command -v "$applet" >/dev/null 2>&1; then
-    exec "$applet" "$@"
+if [ -x /system/bin/"$applet" ]; then
+    exec /system/bin/"$applet" "$@"
+fi
+if [ -x /system/xbin/"$applet" ]; then
+    exec /system/xbin/"$applet" "$@"
 fi
 echo "no backend for busybox applet: ${applet}" >&2
 exit 127
 EOS
+
+runtime_command_wrappers=(
+    cat ls clear head tail grep sed awk cut tr wc sort uniq xargs tee
+    mkdir rmdir rm cp mv ln chmod chown chgrp uname id pwd env dirname basename
+    touch test printf echo sleep date dd du df ps kill which find readlink realpath
+    expr yes false true seq tar gzip gunzip zcat stat strings file whoami hostname
+    printenv
+)
+
+write_busybox_applet_wrapper() {
+    local app="$1"
+    cat > "${generated_root}/bin/${app}" <<EOS
+#!/system/bin/sh
+# RAFCODEPHI command wrapper: ${app}
+PREFIX="\${PREFIX:-${prefix}}"
+if [ -x "\${PREFIX}/bin/busybox" ]; then
+    exec "\${PREFIX}/bin/busybox" "${app}" "\$@"
+fi
+if [ -x /system/bin/toybox ]; then
+    exec /system/bin/toybox "${app}" "\$@"
+fi
+if [ -x /system/bin/toolbox ]; then
+    exec /system/bin/toolbox "${app}" "\$@"
+fi
+echo "RAFCODEPHI: no backend for command wrapper: ${app}" >&2
+exit 127
+EOS
+}
+
+for app in "${runtime_command_wrappers[@]}"; do
+    write_busybox_applet_wrapper "$app"
+done
 
 {
     emit_wrapper_header
@@ -195,6 +230,9 @@ EOS
 chmod 700 "${generated_root}/bin/sh" "${generated_root}/bin/pkg" "${generated_root}/bin/busybox" "${generated_root}/bin/proot" \
     "${generated_root}/bin/apt" "${generated_root}/bin/apt-get" "${generated_root}/bin/apkmanager" "${generated_root}/bin/shellbash" \
     "${generated_root}/bin/busybox-safe" "${generated_root}/bin/proot-safe"
+for app in "${runtime_command_wrappers[@]}"; do
+    chmod 700 "${generated_root}/bin/${app}"
+done
 chmod 600 "${generated_root}/etc/motd"
 
 cc -O2 -std=c11 -Wall -Wextra -Werror scripts/bootstrap_zip_builder.c -o "$builder"

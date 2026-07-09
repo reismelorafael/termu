@@ -23,7 +23,7 @@ REWRITTEN_ZIPS = (
     "rewritten-bootstrap-aarch64.zip",
     "rewritten-bootstrap-arm.zip",
     "rewritten-bootstrap-i686.zip",
-    "rewritten-bootstrap-x86_64.zip",
+    "rewritten-bootstrap_x86_64.zip".replace("_x86", "-x86"),
 )
 
 RUNTIME_FILES = (
@@ -35,6 +35,36 @@ RUNTIME_FILES = (
     "bin/shellbash",
     "bin/busybox-safe",
     "bin/proot-safe",
+)
+
+COMMAND_WRAPPER_APPLETS = (
+    "cat",
+    "ls",
+    "clear",
+    "grep",
+    "sed",
+    "awk",
+    "head",
+    "tail",
+    "wc",
+    "mkdir",
+    "rm",
+    "cp",
+    "mv",
+    "ln",
+    "chmod",
+    "pwd",
+    "env",
+    "which",
+    "find",
+    "tar",
+    "gzip",
+    "gunzip",
+    "zcat",
+    "stat",
+    "strings",
+    "file",
+    "whoami",
 )
 
 
@@ -88,6 +118,21 @@ def validate() -> list[str]:
         require(build_script, runtime_file, "bootstrap source generator", errors)
         require(builder, runtime_file, "bootstrap zip builder", errors)
 
+    for token in (
+        "runtime_command_wrappers",
+        "write_busybox_applet_wrapper",
+        "${generated_root}/bin/${app}",
+        "command_wrapper_names",
+        "wrapper_paths",
+        "bin/%s",
+        "load_file(payload_root,wrapper_paths[i],wrapper_bufs[i],&wrapper_sizes[i])",
+    ):
+        require(build_script + "\n" + builder, token, "explicit busybox command wrapper machinery", errors)
+
+    for applet in COMMAND_WRAPPER_APPLETS:
+        require(build_script, applet, "explicit busybox command wrapper source applet list", errors)
+        require(builder, f'"{applet}"', "explicit busybox command wrapper zip applet list", errors)
+
     for marker in (
         "BOOTSTRAP_UTILS_READY=1",
         "BOOTSTRAP_APKMANAGER_READY=1",
@@ -96,6 +141,9 @@ def validate() -> list[str]:
         "BOOTSTRAP_PROOT_SAFE_READY=1",
         "RUNTIME_READY=1",
         "BOOTSTRAP_PACKAGE_INSTALLABLE=1",
+        "BOOTSTRAP_COMMAND_WRAPPERS_READY=1",
+        "BOOTSTRAP_EXPLICIT_APPLET_WRAPPERS=1",
+        "EXPLICIT_APPLET_WRAPPERS_READY=1",
         "SYMLINKS.txt",
         "raf-bootstrap-sh",
     ):
@@ -139,6 +187,7 @@ def main() -> int:
     print("native_incbin=rewritten_bootstrap_packages_declared")
     print("gradle_version_helpers=present_and_safe")
     print("existing_bootstrap_environment_init=application_startup_guarded")
+    print("explicit_busybox_command_wrappers=present")
     return 0
 
 

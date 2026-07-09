@@ -16,6 +16,7 @@ on:
       - scripts/smoke_bootstrap_filesystem_proot_busybox_service.sh
       - docs/audits/README_RUNTIME_CLAIM_BOUNDARY_HOTFIX.md
       - docs/audits/EXISTING_BOOTSTRAP_ENVIRONMENT_INIT_HOTFIX.md
+      - docs/audits/DEVICE_BOOTSTRAP_COMMAND_WRAPPERS_AUDIT.md
       - tools/validate_bootstrap_package_install_contract.py
       - tools/validate_readme_runtime_claim_boundary.py
       - tests/test_bootstrap_package_install_contract.py
@@ -23,6 +24,7 @@ on:
       - tests/test_android_exec_runtime_contract.py
       - tests/test_bootstrap_fullengine_contract.py
       - tests/test_bootstrap_no_recursive_command_bridges.py
+      - tests/test_bootstrap_busybox_applet_wrappers.py
       - .github/workflows/validate-bootstrap-package-install-contract.yml
   pull_request:
     paths:
@@ -36,6 +38,7 @@ on:
       - scripts/smoke_bootstrap_filesystem_proot_busybox_service.sh
       - docs/audits/README_RUNTIME_CLAIM_BOUNDARY_HOTFIX.md
       - docs/audits/EXISTING_BOOTSTRAP_ENVIRONMENT_INIT_HOTFIX.md
+      - docs/audits/DEVICE_BOOTSTRAP_COMMAND_WRAPPERS_AUDIT.md
       - tools/validate_bootstrap_package_install_contract.py
       - tools/validate_readme_runtime_claim_boundary.py
       - tests/test_bootstrap_package_install_contract.py
@@ -43,6 +46,7 @@ on:
       - tests/test_android_exec_runtime_contract.py
       - tests/test_bootstrap_fullengine_contract.py
       - tests/test_bootstrap_no_recursive_command_bridges.py
+      - tests/test_bootstrap_busybox_applet_wrappers.py
       - .github/workflows/validate-bootstrap-package-install-contract.yml
   workflow_dispatch:
 
@@ -66,6 +70,9 @@ jobs:
 
       - name: Run focused bootstrap package tests
         run: python3 -m pytest -q tests/test_bootstrap_package_install_contract.py
+
+      - name: Run busybox applet wrapper tests
+        run: python3 -m pytest -q tests/test_bootstrap_busybox_applet_wrappers.py
 
       - name: Run Android executable prefix runtime contract test
         run: python3 -m pytest -q tests/test_android_exec_runtime_contract.py
@@ -99,6 +106,20 @@ jobs:
               'rewritten-bootstrap-i686.zip',
               'rewritten-bootstrap-x86_64.zip',
           ]
+          command_wrappers = {
+              'bin/cat', 'bin/ls', 'bin/clear', 'bin/head', 'bin/tail',
+              'bin/grep', 'bin/sed', 'bin/awk', 'bin/cut', 'bin/tr', 'bin/wc',
+              'bin/sort', 'bin/uniq', 'bin/xargs', 'bin/tee', 'bin/mkdir',
+              'bin/rmdir', 'bin/rm', 'bin/cp', 'bin/mv', 'bin/ln', 'bin/chmod',
+              'bin/chown', 'bin/chgrp', 'bin/uname', 'bin/id', 'bin/pwd',
+              'bin/env', 'bin/dirname', 'bin/basename', 'bin/touch', 'bin/test',
+              'bin/printf', 'bin/echo', 'bin/sleep', 'bin/date', 'bin/dd',
+              'bin/du', 'bin/df', 'bin/ps', 'bin/kill', 'bin/which', 'bin/find',
+              'bin/readlink', 'bin/realpath', 'bin/expr', 'bin/yes', 'bin/false',
+              'bin/true', 'bin/seq', 'bin/tar', 'bin/gzip', 'bin/gunzip',
+              'bin/zcat', 'bin/stat', 'bin/strings', 'bin/file', 'bin/whoami',
+              'bin/hostname', 'bin/printenv',
+          }
           required_entries = {
               'BOOTSTRAP_INFO',
               'SYMLINKS.txt',
@@ -115,7 +136,7 @@ jobs:
               'bin/proot-safe',
               'bin/rafcodephi-compat-hotfix',
               'etc/motd',
-          }
+          } | command_wrappers
           executable_entries = {name for name in required_entries if name.startswith('bin/')}
           required_info_tokens = [
               'BOOTSTRAP_UTILS_READY=1',
@@ -128,6 +149,7 @@ jobs:
               'BOOTSTRAP_PATHS_VALIDATED=1',
               'BOOTSTRAP_PERMISSIONS_DECLARED=1',
               'BOOTSTRAP_COMMAND_WRAPPERS_READY=1',
+              'BOOTSTRAP_EXPLICIT_APPLET_WRAPPERS=1',
           ]
           for zip_name in required_zips:
               path = root / zip_name
@@ -155,6 +177,8 @@ jobs:
                       raise SystemExit(f'{zip_name}: runtime/fullengine marker missing')
                   if 'COMMAND_WRAPPERS_READY=1' not in build_only:
                       raise SystemExit(f'{zip_name}: command wrappers marker missing')
+                  if 'EXPLICIT_APPLET_WRAPPERS_READY=1' not in build_only:
+                      raise SystemExit(f'{zip_name}: explicit applet wrappers marker missing')
                   if not symlinks.strip():
                       raise SystemExit(f'{zip_name}: SYMLINKS.txt is empty')
           PY
