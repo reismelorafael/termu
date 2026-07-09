@@ -118,7 +118,7 @@ def apk_termux_readiness() -> list[ReadinessCheck]:
         readiness_check("termux_install_apt", "scripts/build_rafaelia_bootstraps.sh", "bin/apt", "bootstrap must provide apt/apt-get bridge or real backend handoff"),
         readiness_check("termux_install_busybox", "scripts/build_rafaelia_bootstraps.sh", "bin/busybox", "bootstrap must provide busybox fallback utilities"),
         readiness_check("termux_install_proot", "scripts/build_rafaelia_bootstraps.sh", "bin/proot", "bootstrap must provide proot bridge/fallback path"),
-        readiness_check("termux_prefix_side_by_side", "scripts/build_rafaelia_bootstraps.sh", "/data/data/com.termux.rafacodephi/files/usr", "avoid hardcoded upstream com.termux prefix in generated bootstrap"),
+        readiness_check("termux_prefix_side_by_side", "scripts/build_rafaelia_bootstraps.sh", 'prefix="/data/data/${TERMUX_BOOTSTRAP_PACKAGE_NAME}/files/usr"', "keep generated bootstrap paths derived from TERMUX_BOOTSTRAP_PACKAGE_NAME"),
     ]
     generated = [
         "app/src/main/cpp/rewritten-bootstrap-aarch64.zip",

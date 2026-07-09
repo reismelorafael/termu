@@ -12,11 +12,15 @@ generated_root="${ROOT_DIR}/build/generated/rafaelia-bootstrap/common"
 prefix="/data/data/${TERMUX_BOOTSTRAP_PACKAGE_NAME}/files/usr"
 trap 'rm -f "$builder"' EXIT
 
-mkdir -p "${generated_root}/bin" "${generated_root}/etc" app/src/main/cpp
+mkdir -p "${generated_root}/bin" "${generated_root}/etc" "${generated_root}/lib" "${generated_root}/tmp" "${generated_root}/var" app/src/main/cpp
 
-cat > "${generated_root}/bin/sh" <<'EOS'
-#!/system/bin/sh
-PREFIX="${PREFIX:-/data/data/com.termux.rafacodephi/files/usr}"
+emit_wrapper_header() {
+    printf '#!/system/bin/sh\nPREFIX="${PREFIX:-%s}"\n' "$prefix"
+}
+
+{
+    emit_wrapper_header
+    cat <<'EOS'
 if [ -x "${PREFIX}/bin/bash" ]; then
     exec "${PREFIX}/bin/bash" "$@"
 fi
@@ -26,10 +30,11 @@ fi
 echo 'no executable shell backend found' >&2
 exit 127
 EOS
+} > "${generated_root}/bin/sh"
 
-cat > "${generated_root}/bin/pkg" <<'EOS'
-#!/system/bin/sh
-PREFIX="${PREFIX:-/data/data/com.termux.rafacodephi/files/usr}"
+{
+    emit_wrapper_header
+    cat <<'EOS'
 cmd="${1:-help}"
 is_raf_wrapper() { [ -f "$1" ] && grep -q 'RAFCODEPHI .*wrapper' "$1" 2>/dev/null; }
 
@@ -68,10 +73,11 @@ echo 'real apt/apt-get backend is not installed yet' >&2
 echo 'build the RAFCODEPHI core packages and install the generated prefix payload.' >&2
 exit 127
 EOS
+} > "${generated_root}/bin/pkg"
 
-cat > "${generated_root}/bin/apt" <<'EOS'
-#!/system/bin/sh
-PREFIX="${PREFIX:-/data/data/com.termux.rafacodephi/files/usr}"
+{
+    emit_wrapper_header
+    cat <<'EOS'
 if [ -x "${PREFIX}/bin/apt.real" ]; then
     exec "${PREFIX}/bin/apt.real" "$@"
 fi
@@ -89,10 +95,11 @@ esac
 echo 'real apt backend is not installed yet' >&2
 exit 127
 EOS
+} > "${generated_root}/bin/apt"
 
-cat > "${generated_root}/bin/apt-get" <<'EOS'
-#!/system/bin/sh
-PREFIX="${PREFIX:-/data/data/com.termux.rafacodephi/files/usr}"
+{
+    emit_wrapper_header
+    cat <<'EOS'
 if [ -x "${PREFIX}/bin/apt-get.real" ]; then
     exec "${PREFIX}/bin/apt-get.real" "$@"
 fi
@@ -110,6 +117,7 @@ esac
 echo 'real apt-get backend is not installed yet' >&2
 exit 127
 EOS
+} > "${generated_root}/bin/apt-get"
 
 cat > "${generated_root}/bin/busybox" <<'EOS'
 #!/system/bin/sh
@@ -140,9 +148,9 @@ echo "no backend for busybox applet: ${applet}" >&2
 exit 127
 EOS
 
-cat > "${generated_root}/bin/proot" <<'EOS'
-#!/system/bin/sh
-PREFIX="${PREFIX:-/data/data/com.termux.rafacodephi/files/usr}"
+{
+    emit_wrapper_header
+    cat <<'EOS'
 for candidate in "${PREFIX}/bin/proot.real" "${PREFIX}/libexec/proot"; do
     if [ -x "$candidate" ]; then
         exec "$candidate" "$@"
@@ -155,6 +163,7 @@ fi
 echo 'real proot native binary is not installed yet' >&2
 exit 127
 EOS
+} > "${generated_root}/bin/proot"
 
 cat > "${generated_root}/bin/apkmanager" <<EOS
 #!${prefix}/bin/sh
