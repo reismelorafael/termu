@@ -1,8 +1,14 @@
 package com.termux.app;
 
+import android.os.Build;
+import android.system.Os;
+import android.system.StructStat;
+
 import com.termux.rafacodephi.BuildConfig;
 import com.termux.shared.logger.Logger;
+import com.termux.shared.termux.TermuxConstants;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
@@ -61,6 +67,8 @@ final class BootstrapBaremetalGuard {
     }
 
     static void validateAfterBootstrap(String prefix) {
+        validateInstallFilesystemAndShell(prefix);
+
         if (!LIB_LOADED) {
             String msg = "Skipped guard validation: native lib not loaded";
             if (BuildConfig.BOOTSTRAP_BAREMETAL_STRICT) throw new RuntimeException(msg);
@@ -86,6 +94,89 @@ final class BootstrapBaremetalGuard {
             return;
         }
         Logger.logInfo(LOG_TAG, "bootstrap-guard phase=validatePrefix status=ok payload=" + json);
+    }
+
+    private static void validateInstallFilesystemAndShell(String prefix) {
+        if (prefix == null || prefix.trim().isEmpty()) {
+            throw new RuntimeException("Install filesystem guard failed: empty prefix");
+        }
+
+        File prefixDir = new File(prefix);
+        ensureDirectory(prefixDir, 0700, "$PREFIX");
+        ensureDirectory(new File(prefixDir, "bin"), 0700, "$PREFIX/bin");
+        ensureDirectory(new File(prefixDir, "etc"), 0700, "$PREFIX/etc");
+        ensureDirectory(new File(prefixDir, "etc/termux"), 0700, "$PREFIX/etc/termux");
+        ensureDirectory(new File(prefixDir, "tmp"), 0700, "$PREFIX/tmp");
+        ensureDirectory(new File(prefixDir, "var"), 0700, "$PREFIX/var");
+        ensureDirectory(new File(prefixDir, "var/tmp"), 0700, "$PREFIX/var/tmp");
+
+        ensureDirectory(TermuxConstants.TERMUX_HOME_DIR, 0700, "$HOME");
+        ensureDirectory(TermuxConstants.TERMUX_DATA_HOME_DIR, 0700, "$HOME/.termux");
+        ensureDirectory(TermuxConstants.TERMUX_CONFIG_HOME_DIR, 0700, "$HOME/.config/termux");
+        ensureStoragePlaceholder(TermuxConstants.TERMUX_STORAGE_HOME_DIR);
+
+        verifyOwnerExecutable(new File(prefixDir, "bin/sh"), "bootstrap shell");
+        verifyOwnerExecutable(new File(prefixDir, "bin/pkg"), "bootstrap package manager");
+
+        String primaryAbi = Build.SUPPORTED_ABIS.length > 0 ? Build.SUPPORTED_ABIS[0] : "unknown";
+        Logger.logInfo(LOG_TAG, "bootstrap-guard phase=installFilesystemShell status=ok abi=" + primaryAbi +
+            " arm32=" + "armeabi-v7a".equals(primaryAbi) + " prefix=" + prefix);
+    }
+
+    private static void ensureDirectory(File directory, int mode, String label) {
+        if (directory == null) {
+            throw new RuntimeException("Install filesystem guard failed: null directory for " + label);
+        }
+        if (directory.exists() && !directory.isDirectory()) {
+            throw new RuntimeException("Install filesystem guard failed: " + label + " is not a directory: " + directory.getAbsolutePath());
+        }
+        if (!directory.exists() && !directory.mkdirs() && !directory.isDirectory()) {
+            throw new RuntimeException("Install filesystem guard failed: could not create " + label + ": " + directory.getAbsolutePath());
+        }
+        try {
+            Os.chmod(directory.getAbsolutePath(), mode);
+        } catch (Exception e) {
+            throw new RuntimeException("Install filesystem guard failed: chmod " + label + " to 0" + Integer.toOctalString(mode) +
+                " at " + directory.getAbsolutePath(), e);
+        }
+    }
+
+    private static void ensureStoragePlaceholder(File storageHome) {
+        if (storageHome == null) {
+            throw new RuntimeException("Install filesystem guard failed: null storage home directory");
+        }
+        if (storageHome.exists()) {
+            if (!storageHome.isDirectory()) {
+                throw new RuntimeException("Install filesystem guard failed: $HOME/storage is not a directory: " + storageHome.getAbsolutePath());
+            }
+            Logger.logInfo(LOG_TAG, "bootstrap-guard phase=installStoragePlaceholder status=existing path=" + storageHome.getAbsolutePath());
+            return;
+        }
+        if (!storageHome.mkdirs() && !storageHome.isDirectory()) {
+            throw new RuntimeException("Install filesystem guard failed: could not create $HOME/storage placeholder: " + storageHome.getAbsolutePath());
+        }
+        try {
+            Os.chmod(storageHome.getAbsolutePath(), 0700);
+        } catch (Exception e) {
+            throw new RuntimeException("Install filesystem guard failed: chmod $HOME/storage placeholder at " + storageHome.getAbsolutePath(), e);
+        }
+        Logger.logInfo(LOG_TAG, "bootstrap-guard phase=installStoragePlaceholder status=created path=" + storageHome.getAbsolutePath());
+    }
+
+    private static void verifyOwnerExecutable(File file, String label) {
+        try {
+            if (!file.exists()) {
+                throw new RuntimeException("missing " + label + ": " + file.getAbsolutePath());
+            }
+            StructStat stat = Os.stat(file.getAbsolutePath());
+            if ((stat.st_mode & 0100) == 0) {
+                throw new RuntimeException(label + " is not executable by owner. mode=0" + Integer.toOctalString(stat.st_mode));
+            }
+        } catch (RuntimeException e) {
+            throw new RuntimeException("Install filesystem guard failed: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new RuntimeException("Install filesystem guard failed for " + label + " at " + file.getAbsolutePath(), e);
+        }
     }
 
     private static void handleStrictFailure(String phase, String cause, Throwable error) {

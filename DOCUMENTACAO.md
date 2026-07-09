@@ -617,15 +617,15 @@ Para detalhes completos sobre cada tipo de booster, incluindo:
 - **JDK**: Java 17 (pipelines principais) e Java 21 (workflow dedicado de matriz signed/unsigned).
 - **SDK/NDK** (fonte: `gradle.properties`):
   - `compileSdkVersion=35`
-  - `targetSdkVersion=34`
+  - `targetSdkVersion=28`
   - `minSdkVersion=21`
   - `ndkVersion=26.3.11579264`
 
 ### ABIs e contratos de saída
 
-- ABIs mandatórias validadas no fluxo de build: `arm64-v8a`, `armeabi-v7a`, `x86_64`.
+- ABIs mandatórias validadas no fluxo de build: `armeabi-v7a`, `arm64-v8a`.
 - `universal` é tratado como mandatória quando gerado.
-- `x86` é opcional (aceito quando existir, sem quebrar build quando ausente).
+- `x86` e `x86_64` são históricos/experimentais nesta fork e não são ABIs obrigatórias da trilha ARM oficial.
 
 ### Artefatos publicados
 
@@ -806,3 +806,13 @@ Este fork mantém a licença GPLv3 do projeto original Termux.
   2. teste mínimo de equivalência C/ASM em `Arme/tests/equivalence/<id>.sh`;
   3. trilha de auditoria em `Arme/reports/promotion_audit.log`.
 - CI bloqueia PR/push com novos arquivos `.c/.h/.S` em `Arme/Add/` sem entrada correspondente no manifesto através do workflow `.github/workflows/arme-add-governance.yml`.
+
+## Estado epistêmico e limites operacionais
+
+- **PROVADO**: contratos de build/release/ABI conferidos por scripts.
+- **PARCIAL**: bootstrap mínimo, wrappers e smoke que ainda pedem device real.
+- **TOKEN_VAZIO**: `pkg install` real, backend `apt`, `dpkg`, `libapt`, certificados, repositório e `proot.real` até payload core completo.
+- **EXPERIMENTAL**: otimizações e VCPU além do state kernel.
+- **FUTURO**: VM completa com bytecode, loader, executor, syscall table, dump e replay.
+
+O bootstrap atual fornece uma base mínima guardada para instalação e diagnóstico, mas ainda não equivale a uma distribuição Termux completa com backend apt real. ZIPRAF não é compressão física: é endereçamento lógico multirresolução sobre bytes existentes.

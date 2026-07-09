@@ -26,6 +26,17 @@ ext {
     bootstrapBlake3X8664 = System.getenv("TERMUX_BOOTSTRAP_BLAKE3_X86_64") ?: ""
 }
 
+def validateVersionName(String candidateVersionName) {
+    def semverRegex = '^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$'
+    if (!java.util.regex.Pattern.matches(semverRegex, candidateVersionName)) {
+        throw new GradleException("Invalid semantic versionName: ${candidateVersionName}")
+    }
+}
+
+def hasReleaseTaskRequested() {
+    return gradle.startParameter.taskNames.any { it.toLowerCase(Locale.ROOT).contains("release") }
+}
+
 android {
     namespace = "com.termux.rafacodephi"
 
@@ -35,7 +46,7 @@ android {
     def apkVersionTag = System.getenv("TERMUX_APK_VERSION_TAG") ?: ""
     def splitAPKsForDebugBuilds = System.getenv("TERMUX_SPLIT_APKS_FOR_DEBUG_BUILDS") ?: "1"
     def splitAPKsForReleaseBuilds = System.getenv("TERMUX_SPLIT_APKS_FOR_RELEASE_BUILDS") ?: "0" // F-Droid does not support split APKs #1904
-    def requestedReleaseBuild = gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") }
+    def requestedReleaseBuild = hasReleaseTaskRequested()
     def baremetalStrictValue = System.getenv("TERMUX_BOOTSTRAP_BAREMETAL_STRICT") ?: (requestedReleaseBuild ? "true" : "false")
 
     defaultConfig {
@@ -43,11 +54,10 @@ android {
         minSdk = project.properties.minSdkVersion.toInteger()
         targetSdk = project.properties.targetSdkVersion.toInteger()
         versionCode 118
-        versionName "0.118.0"
+        def effectiveVersionName = appVersionName ?: "0.118.0"
+        validateVersionName(effectiveVersionName)
+        versionName effectiveVersionName
         versionNameSuffix "-rafacodephi"
-
-        if (appVersionName) versionName = appVersionName
-        validateVersionName(versionName)
 
         buildConfigField "String", "TERMUX_PACKAGE_VARIANT", "\"" + project.ext.packageVariant + "\"" // Used by TermuxApplication class
         buildConfigField "String", "BOOTSTRAP_BLAKE3_AARCH64", "\"" + project.ext.bootstrapBlake3Aarch64 + "\""
@@ -84,7 +94,9 @@ android {
             enable = ((gradle.startParameter.taskNames.any { it.contains("Debug") } && splitAPKsForDebugBuilds == "1") ||
                 (gradle.startParameter.taskNames.any { it.contains("Release") } && splitAPKsForReleaseBuilds == "1"))
             reset()
-            include(*(project.findProperty('termux.abi.matrix').toString().split(',') + project.findProperty('termux.abi.optional').toString().split(',')))
+            def requiredAbiFilters = project.findProperty('termux.abi.matrix').toString().split(',').findAll { it?.trim() }
+            def optionalAbiFilters = project.findProperty('termux.abi.optional').toString().split(',').findAll { it?.trim() }
+            include(*((requiredAbiFilters + optionalAbiFilters) as String[]))
             universalApk = true
         }
     }
@@ -201,6 +213,41 @@ android {
     }
 }
 
+def rafcodephiBootstrapZips = [
+    file("src/main/cpp/rewritten-bootstrap-aarch64.zip"),
+    file("src/main/cpp/rewritten-bootstrap-arm.zip"),
+    file("src/main/cpp/rewritten-bootstrap-i686.zip"),
+    file("src/main/cpp/rewritten-bootstrap-x86_64.zip"),
+]
+
+
+tasks.register("validateSideBySideContract", Exec) {
+    group = "verification"
+    description = "Validates canonical RAFCODEPHI side-by-side package/bootstrap contract."
+    workingDir rootProject.projectDir
+    commandLine "python3", "scripts/validate_side_by_side_contract.py"
+}
+
+tasks.register("generateRafcodephiBootstraps", Exec) {
+    group = "build setup"
+    description = "Generate installable RAFCODEPHI bootstrap packages before native incbin."
+    workingDir rootProject.projectDir
+    commandLine "bash", "scripts/build_rafaelia_bootstraps.sh"
+    environment "TERMUX_BOOTSTRAP_PACKAGE_NAME", project.ext.bootstrapMetadataPackageName
+    environment "TERMUX_BOOTSTRAP_PAGE_SIZE", project.ext.bootstrapRequiredPageSize
+    outputs.files(rafcodephiBootstrapZips)
+}
+
+tasks.named("preBuild") {
+    dependsOn(tasks.named("generateRafcodephiBootstraps"))
+}
+
+tasks.configureEach { task ->
+    if (task.name.startsWith("externalNativeBuild") || task.name.startsWith("generateJsonModel")) {
+        task.dependsOn(tasks.named("generateRafcodephiBootstraps"))
+    }
+}
+
 dependencies {
     implementation "androidx.annotation:annotation:1.9.0"
     implementation "androidx.core:core:1.13.1"
@@ -208,7 +255,7 @@ dependencies {
     implementation "androidx.preference:preference:1.2.1"
     implementation "androidx.viewpager:viewpager:1.0.0"
     implementation "com.google.android.material:material:1.12.0"
-    implementation "com.google.guava:guava:24.1-jre"
+    implementation "com.google.guava:guava:32.1.3-jre"
     implementation "io.noties.markwon:core:$markwonVersion"
     implementation "io.noties.markwon:ext-strikethrough:$markwonVersion"
     implementation "io.noties.markwon:linkify:$markwonVersion"
@@ -218,711 +265,8 @@ dependencies {
 
     implementation project(":terminal-view")
     implementation project(":termux-shared")
-    implementation project(":rafaelia")
-    implementation project(":rmr")
+
     testImplementation "junit:junit:4.13.2"
-    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.2"
-}
 
-tasks.register("printVersionName") {
-    group = "versioning"
-    description = "Prints the effective app versionName after Gradle configuration."
-    doLast {
-        println android.defaultConfig.versionName
-    }
-}
-
-tasks.register("versionName") {
-    group = "versioning"
-    description = "Backward-compatible alias for printVersionName."
-    dependsOn("printVersionName")
-}
-
-def validateVersionName(String versionName) {
-    // https://semver.org/spec/v2.0.0.html#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
-    // ^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$
-    if (!java.util.regex.Pattern.matches("^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?\$", versionName))
-        throw new GradleException("The versionName '"  + versionName + "' is not a valid version as per semantic version '2.0.0' spec in the format 'major.minor.patch(-prerelease)(+buildmetadata)'. https://semver.org/spec/v2.0.0.html.")
-}
-
-def downloadBootstrap(String arch, String expectedChecksum, String version) {
-    def digest = java.security.MessageDigest.getInstance("SHA-256")
-    def baseUrl = project.ext.bootstrapBaseUrl
-    def localUrl = "src/main/cpp/bootstrap-" + arch + ".zip"
-    def file = new File(projectDir, localUrl)
-    if (file.exists()) {
-        // Zips that already contain BOOTSTRAP_INFO have been finalized for this fork.
-        // Their bytes intentionally differ from upstream bootstrap checksums, so do not
-        // delete and re-download them on every build. Metadata is validated by
-        // requiredBootstrapMetadata() immediately after this function returns.
-        try {
-            def zipFile = new java.util.zip.ZipFile(file)
-            try {
-                if (zipFile.getEntry("BOOTSTRAP_INFO") != null) return
-            } finally {
-                zipFile.close()
-            }
-        } catch (java.util.zip.ZipException ignored) {
-            logger.quiet("Deleting invalid local bootstrap zip: " + localUrl)
-            file.delete()
-            digest.reset()
-        }
-
-        if (file.exists()) {
-            def buffer = new byte[8192]
-            new FileInputStream(file).withCloseable { input ->
-                while (true) {
-                    def readBytes = input.read(buffer)
-                    if (readBytes < 0) break
-                    digest.update(buffer, 0, readBytes)
-                }
-            }
-            def checksum = new BigInteger(1, digest.digest()).toString(16)
-            while (checksum.length() < 64) { checksum = "0" + checksum }
-            if (checksum == expectedChecksum) {
-                return
-            } else {
-                logger.quiet("Deleting old local file with wrong hash: " + localUrl + ": expected: " + expectedChecksum + ", actual: " + checksum)
-                file.delete()
-            }
-
-            // Reset hash state before validating a newly downloaded file. Without this,
-            // stale local bytes contaminate checksum validation and bootstrap download can
-            // fail permanently after a single corrupted/incomplete file.
-            digest.reset()
-        }
-    }
-
-    def remoteUrl = baseUrl + "/bootstrap-" + version + "/bootstrap-" + arch + ".zip"
-    logger.quiet("Downloading " + remoteUrl + " ...")
-
-    file.parentFile.mkdirs()
-    def out = new BufferedOutputStream(new FileOutputStream(file))
-
-    def connection = new URL(remoteUrl).openConnection()
-    connection.setInstanceFollowRedirects(true)
-    def digestStream = new java.security.DigestInputStream(connection.inputStream, digest)
-    out << digestStream
-    out.close()
-
-    def checksum = new BigInteger(1, digest.digest()).toString(16)
-    while (checksum.length() < 64) { checksum = "0" + checksum }
-    if (checksum != expectedChecksum) {
-        file.delete()
-        throw new GradleException("Wrong checksum for " + remoteUrl + ": expected: " + expectedChecksum + ", actual: " + checksum)
-    }
-}
-
-clean {
-    doLast {
-        def tree = fileTree(new File(projectDir, 'src/main/cpp'))
-        tree.include 'bootstrap-*.zip'
-        tree.each { it.delete() }
-    }
-}
-
-def configuredPackageVariant = project.ext.packageVariant
-def configuredBootstrapPackageName = project.ext.bootstrapMetadataPackageName
-def configuredBootstrapPageSize = project.ext.bootstrapRequiredPageSize
-def configuredBootstrapValidationMode = project.ext.bootstrapValidationMode
-
-def ensureBootstrapInfoEntry(File file, String expectedPackageName, String expectedPageSize) {
-    def zipFile = new java.util.zip.ZipFile(file)
-    try {
-        if (zipFile.getEntry("BOOTSTRAP_INFO") != null) return
-    } finally {
-        zipFile.close()
-    }
-
-    File tmpFile = new File(file.parentFile, file.name + ".tmp")
-    if (tmpFile.exists()) tmpFile.delete()
-    def infoText = "TERMUX_PACKAGE_NAME=${expectedPackageName}\nTERMUX_PAGE_SIZE=${expectedPageSize}\n"
-
-    zipFile = new java.util.zip.ZipFile(file)
-    def zipOut = new java.util.zip.ZipOutputStream(new FileOutputStream(tmpFile))
-    try {
-        def entries = zipFile.entries()
-        while (entries.hasMoreElements()) {
-            def oldEntry = entries.nextElement()
-            def newEntry = new java.util.zip.ZipEntry(oldEntry.name)
-            newEntry.time = oldEntry.time
-
-            if (oldEntry.method == java.util.zip.ZipEntry.STORED) {
-                newEntry.method = java.util.zip.ZipEntry.STORED
-                newEntry.size = oldEntry.size
-                newEntry.compressedSize = oldEntry.compressedSize
-                newEntry.crc = oldEntry.crc
-            }
-
-            zipOut.putNextEntry(newEntry)
-            zipOut << zipFile.getInputStream(oldEntry)
-            zipOut.closeEntry()
-        }
-
-        def infoEntry = new java.util.zip.ZipEntry("BOOTSTRAP_INFO")
-        infoEntry.time = 0L
-        zipOut.putNextEntry(infoEntry)
-        zipOut.write(infoText.getBytes("UTF-8"))
-        zipOut.closeEntry()
-    } finally {
-        zipOut.close()
-        zipFile.close()
-    }
-
-    if (!tmpFile.renameTo(file)) {
-        tmpFile.delete()
-        throw new GradleException("Failed to finalize BOOTSTRAP_INFO injection for " + file.name)
-    }
-
-    logger.lifecycle("Injected BOOTSTRAP_INFO into ${file.name} using pinned bootstrap metadata.")
-}
-
-def hasReleaseTaskRequested() {
-    return gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") }
-}
-
-def hasDebugTaskRequested() {
-    return gradle.startParameter.taskNames.any { it.toLowerCase().contains("debug") }
-}
-
-def resolveBootstrapValidationMode(String configuredMode) {
-    if (configuredMode == "auto") {
-        if (hasReleaseTaskRequested()) return "strict"
-        if (hasDebugTaskRequested()) return "upstream-debug-compat"
-        return "upstream-debug-compat"
-    }
-    if (configuredMode != "strict" && configuredMode != "upstream-debug-compat") {
-        throw new GradleException(
-            "Unsupported TERMUX_BOOTSTRAP_VALIDATION_MODE \"" + configuredMode +
-            "\". Allowed values: auto, strict, upstream-debug-compat."
-        )
-    }
-    return configuredMode
-}
-
-tasks.register("downloadBootstraps") {
-    doLast {
-        def packageVariant = project.ext.packageVariant
-        def expectedBootstrapPackageName = project.ext.bootstrapMetadataPackageName
-        def expectedPageSize = project.ext.bootstrapRequiredPageSize
-        def bootstrapValidationMode = resolveBootstrapValidationMode(project.ext.bootstrapValidationMode)
-
-        if (bootstrapValidationMode == "upstream-debug-compat" &&
-            gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") }) {
-            throw new GradleException("TERMUX_BOOTSTRAP_VALIDATION_MODE=upstream-debug-compat is forbidden for release tasks.")
-        }
-
-        def validateBootstrap = { arch, checksum, version ->
-            downloadBootstrap(arch, checksum, version)
-            File file = new File(projectDir, "src/main/cpp/bootstrap-${arch}.zip")
-            requiredBootstrapMetadata(file, expectedBootstrapPackageName, expectedPageSize, bootstrapValidationMode)
-        }
-
-        if (packageVariant == "apt-android-7") {
-            def version = "2022.04.28-r5" + "+" + packageVariant
-            validateBootstrap("aarch64", "4a51a7eb209fe82efc24d52e3cccc13165f27377290687cb82038cbd8e948430", version)
-            validateBootstrap("arm", "6459a786acbae50d4c8a36fa1c3de6a4dd2d482572f6d54f73274709bd627325", version)
-            validateBootstrap("i686", "919d212b2f19e08600938db4079e794e947365022dbfd50ac342c50fcedcd7be", version)
-            validateBootstrap("x86_64", "61b02fdc03ea4f5d9da8d8cf018013fdc6659e6da6cbf44e9b24d1c623580b89", version)
-        } else if (packageVariant == "apt-android-5") {
-            def version = "2022.04.28-r6" + "+" + packageVariant
-            validateBootstrap("aarch64", "913609d439415c828c5640be1b0561467e539cb1c7080662decaaca2fb4820e7", version)
-            validateBootstrap("arm", "26bfb45304c946170db69108e5eb6e3641aad751406ce106c80df80cad2eccf8", version)
-            validateBootstrap("i686", "46dcfeb5eef67ba765498db9fe4c50dc4690805139aa0dd141a9d8ee0693cd27", version)
-            validateBootstrap("x86_64", "615b590679ee6cd885b7fd2ff9473c845e920f9b422f790bb158c63fe42b8481", version)
-        } else {
-            throw new GradleException("Unsupported TERMUX_PACKAGE_VARIANT \"" + packageVariant + "\"")
-        }
-    }
-}
-
-
-
-tasks.register("rewriteBootstraps") {
-    group = "build setup"
-    description = "Rewrites upstream bootstraps into runtime-ready RAFCODEPHI bootstraps."
-    dependsOn(tasks.named("downloadBootstraps"))
-    doLast {
-        def mappings = [
-            [arch:"arm", abi:"armeabi-v7a"],
-            [arch:"aarch64", abi:"arm64-v8a"],
-            [arch:"i686", abi:"x86"],
-            [arch:"x86_64", abi:"x86_64"]
-        ]
-        mappings.each { m ->
-            exec {
-                workingDir rootProject.projectDir
-                commandLine "python3", "scripts/rewrite_bootstrap.py",
-                    "--input", "app/src/main/cpp/bootstrap-${m.arch}.zip",
-                    "--output", "app/src/main/cpp/rewritten-bootstrap-${m.arch}.zip",
-                    "--arch", m.arch,
-                    "--abi", m.abi,
-                    "--package-name", project.ext.bootstrapMetadataPackageName,
-                    "--prefix", "/data/data/${project.ext.bootstrapMetadataPackageName}/files/usr",
-                    "--home", "/data/data/${project.ext.bootstrapMetadataPackageName}/files/home",
-                    "--page-size", project.ext.bootstrapRequiredPageSize,
-                    "--variant", project.ext.packageVariant
-            }
-        }
-    }
-}
-
-tasks.register("validateRewrittenBootstraps") {
-    group = "verification"
-    description = "Validates rewritten bootstrap metadata and runtime readiness contract."
-    dependsOn(tasks.named("rewriteBootstraps"))
-    doLast {
-        ["arm","aarch64","i686","x86_64"].each { arch ->
-            def f = new File(projectDir, "src/main/cpp/rewritten-bootstrap-${arch}.zip")
-            if (!f.exists()) throw new GradleException("Missing rewritten bootstrap: ${f}")
-            def z = new java.util.zip.ZipFile(f)
-            try {
-                def info = z.getInputStream(z.getEntry("BOOTSTRAP_INFO")).getText("UTF-8")
-                if (!info.contains("BOOTSTRAP_RUNTIME_READY=1")) throw new GradleException("BOOTSTRAP_RUNTIME_READY invalid for ${arch}")
-                if (!info.contains("BOOTSTRAP_KIND=rewritten")) throw new GradleException("BOOTSTRAP_KIND invalid for ${arch}")
-                if (z.getEntry("BUILD_ONLY") != null) {
-                    def v = z.getInputStream(z.getEntry("BUILD_ONLY")).getText("UTF-8").trim()
-                    if (v == "1") throw new GradleException("BUILD_ONLY=1 on ${arch}")
-                }
-                def shellCandidates = ["bin/sh", "usr/bin/sh", "bin/bash", "usr/bin/bash", "bin/dash", "usr/bin/dash"]
-                def pkgCandidates = ["bin/pkg", "usr/bin/pkg"]
-                if (!shellCandidates.any { z.getEntry(it) != null }) {
-                    throw new GradleException("No shell candidate found on ${arch}. Checked: ${shellCandidates.join(', ')}")
-                }
-                if (!pkgCandidates.any { z.getEntry(it) != null }) {
-                    throw new GradleException("No pkg candidate found on ${arch}. Checked: ${pkgCandidates.join(', ')}")
-                }
-            } finally { z.close() }
-        }
-    }
-}
-
-tasks.register("buildDeveloperBootstraps", Exec) {
-    description = 'Compiles RAFCODEΦ local bootstrap zip artifacts for CI/developer builds.'
-    group = 'build setup'
-    workingDir rootProject.projectDir
-    commandLine "bash", "scripts/build_rafaelia_bootstraps.sh"
-}
-
-
-
-task verifyBootstrapZipsPresent {
-    dependsOn(tasks.named("downloadBootstraps"))
-    description = 'Verifies required bootstrap zip artifacts are present in src/main/cpp.'
-    group = 'verification'
-
-    doLast {
-        def requiredZips = [
-            'src/main/cpp/bootstrap-aarch64.zip',
-            'src/main/cpp/bootstrap-arm.zip',
-            'src/main/cpp/bootstrap-i686.zip',
-            'src/main/cpp/bootstrap-x86_64.zip'
-        ]
-
-        def missing = requiredZips.findAll { !new File(projectDir, it).exists() }
-        if (!missing.isEmpty()) {
-            throw new GradleException('Missing required bootstrap zip artifacts:\n - ' + missing.join('\n - ') +
-                '\nRun :app:ensureBootstrapArchives to compile or download them before native build tasks.')
-        }
-
-        requiredZips.each { path ->
-            requiredBootstrapMetadata(new File(projectDir, path), project.ext.bootstrapMetadataPackageName, project.ext.bootstrapRequiredPageSize, "strict")
-        }
-
-    }
-}
-
-
-
-tasks.register("validateBootstrapBlake3Config") {
-    description = "Validates TERMUX_BOOTSTRAP_BLAKE3_* availability before packaging."
-    group = "verification"
-    doLast {
-        def missing = []
-        def values = [
-            "AARCH64": project.ext.bootstrapBlake3Aarch64,
-            "ARM": project.ext.bootstrapBlake3Arm,
-            "I686": project.ext.bootstrapBlake3I686,
-            "X86_64": project.ext.bootstrapBlake3X8664
-        ]
-        values.each { arch, value ->
-            if (!value || value.trim().isEmpty()) missing << arch
-        }
-
-        if (!missing.isEmpty()) {
-            def msg = "Missing TERMUX_BOOTSTRAP_BLAKE3_* for architectures: ${missing.join(', ')}. " +
-                "Set TERMUX_BOOTSTRAP_BLAKE3_AARCH64/ARM/I686/X86_64 before release builds."
-            if (hasReleaseTaskRequested()) {
-                throw new GradleException(msg)
-            }
-            logger.warn(msg + " Debug builds are allowed but are not BOOTSTRAP_RUNTIME_READY.")
-        }
-    }
-}
-tasks.register("ensureBootstrapArchives") {
-    description = 'Compiles/downloads and validates all bootstrap zip artifacts required by native bootstrap ASM embedding.'
-    group = 'build setup'
-    def useDevBootstrap = (project.findProperty("RAF_BOOTSTRAP_SOURCE") ?: System.getenv("RAF_BOOTSTRAP_SOURCE") ?: "").toString().toLowerCase() == "local"
-    dependsOn(useDevBootstrap ? tasks.named("buildDeveloperBootstraps") : tasks.named("validateRewrittenBootstraps"))
-    dependsOn(tasks.named("verifyBootstrapZipsPresent"))
-    dependsOn(tasks.named("validateBootstrapBlake3Config"))
-}
-def isLocalBootstrapMode() {
-    return (project.findProperty("RAF_BOOTSTRAP_SOURCE") ?: System.getenv("RAF_BOOTSTRAP_SOURCE") ?: "")
-        .toString()
-        .toLowerCase() == "local"
-}
-def requiredBootstrapMetadata(File file, String expectedPackageName, String expectedPageSize, String validationMode) {
-    def zipFile = new java.util.zip.ZipFile(file)
-    try {
-        def entry = zipFile.getEntry("BOOTSTRAP_INFO")
-        if (entry == null) {
-            if (validationMode == "upstream-debug-compat") {
-                zipFile.close()
-                zipFile = null
-                ensureBootstrapInfoEntry(file, expectedPackageName, expectedPageSize)
-                zipFile = new java.util.zip.ZipFile(file)
-                entry = zipFile.getEntry("BOOTSTRAP_INFO")
-            }
-            if (entry == null) {
-                throw new GradleException("Missing BOOTSTRAP_INFO in " + file.name +
-                    ". Build a bootstrap that records TERMUX_PACKAGE_NAME and TERMUX_PAGE_SIZE.")
-            }
-        }
-
-        def text = zipFile.getInputStream(entry).getText("UTF-8")
-        def metadata = [:]
-        text.eachLine { line ->
-            def trimmed = line.trim()
-            if (!trimmed || trimmed.startsWith("#") || !trimmed.contains("=")) return
-            def parts = trimmed.split("=", 2)
-            metadata[parts[0].trim()] = parts[1].trim()
-        }
-
-        def packageName = metadata["TERMUX_PACKAGE_NAME"]
-        if (packageName != expectedPackageName) {
-            if (validationMode == "upstream-debug-compat" && packageName == "com.termux") {
-                logger.warn("BOOTSTRAP_INFO package com.termux in ${file.name}; allowed by TERMUX_BOOTSTRAP_VALIDATION_MODE=upstream-debug-compat")
-            } else {
-                throw new GradleException("BOOTSTRAP_INFO TERMUX_PACKAGE_NAME mismatch in " + file.name +
-                    ": expected \"" + expectedPackageName + "\", got \"" + packageName + "\"")
-            }
-        }
-
-        def pageSize = metadata["TERMUX_PAGE_SIZE"]
-        if (pageSize != expectedPageSize) {
-            if (validationMode == "upstream-debug-compat") {
-                logger.warn("BOOTSTRAP_INFO page size mismatch in ${file.name}; expected ${expectedPageSize}, got ${pageSize}, allowed by TERMUX_BOOTSTRAP_VALIDATION_MODE=upstream-debug-compat")
-            } else {
-                throw new GradleException("BOOTSTRAP_INFO TERMUX_PAGE_SIZE mismatch in " + file.name +
-                    ": expected \"" + expectedPageSize + "\", got \"" + pageSize + "\"")
-            }
-        }
-    } finally {
-        zipFile.close()
-    }
-}
-
-afterEvaluate {
-    android.applicationVariants.all { variant ->
-        variant.preBuildProvider.get().dependsOn(ensureBootstrapArchives)
-        if (!isLocalBootstrapMode()) {
-            variant.preBuildProvider.get().dependsOn(tasks.named("validateRewrittenBootstraps"))
-        }
-        variant.javaCompileProvider.get().dependsOn(ensureBootstrapArchives)
-    }
-
-    def shouldWireBootstrapDeps = { task ->
-        task.name.startsWith("externalNativeBuild") || task.name.startsWith("configureNdkBuild")
-    }
-
-    tasks.matching(shouldWireBootstrapDeps).configureEach {
-        dependsOn(ensureBootstrapArchives)
-        if (!isLocalBootstrapMode()) {
-            dependsOn(tasks.named("validateRewrittenBootstraps"))
-        }
-    }
-
-    tasks.whenTaskAdded { task ->
-        if (shouldWireBootstrapDeps(task)) {
-            task.dependsOn(ensureBootstrapArchives)
-            if (!isLocalBootstrapMode()) {
-                task.dependsOn(tasks.named("validateRewrittenBootstraps"))
-            }
-        }
-    }
-}
-
-// Validation task to check for hardcoded package names
-task validatePackageNames {
-    description = 'Validates that no hardcoded com.termux package names exist (except in package/import declarations)'
-    group = 'verification'
-    
-    doLast {
-        def errors = []
-        def rootDir = project.rootProject.projectDir
-        
-        // Files to check
-        fileTree(rootDir) {
-            include '**/*.java', '**/*.kt', '**/*.xml'
-            exclude '**/build/**', '**/.gradle/**', '**/.git/**', '**/bootstrap-*.zip'
-        }.each { file ->
-            def lineNumber = 0
-            def inBlockComment = false
-            file.eachLine { line ->
-                lineNumber++
-                def trimmedLine = line.trim()
-                
-                // Track multi-line comments
-                if (trimmedLine.contains('/*') && !trimmedLine.contains('*/')) {
-                    inBlockComment = true
-                }
-                if (inBlockComment && trimmedLine.contains('*/')) {
-                    inBlockComment = false
-                    return
-                }
-                
-                // Skip package declarations, imports, comments, javadocs, single-line block comments, and default value comments
-                if (trimmedLine.startsWith('package ') || 
-                    trimmedLine.startsWith('import ') ||
-                    trimmedLine.startsWith('//') ||
-                    trimmedLine.startsWith('*') ||
-                    trimmedLine.contains('package="com.termux.') || // XML package attribute for Java structure
-                    line.contains('// Default:') || // Default value comments
-                    (trimmedLine.contains('/*') && trimmedLine.contains('*/')) || // Single-line block comment
-                    inBlockComment) {
-                    return
-                }
-                
-                // Check for hardcoded legacy app id usages that are not class/package references.
-                if (line.contains('com.termux') && !line.contains('com.termux.rafacodephi')) {
-                    def isManifestTopLevelClassReference =
-                        trimmedLine ==~ /.*android:name="com\.termux\.[A-Z][^"]*".*/
-
-                    // Check if it's using a constant or placeholder or is a class reference
-                    if (!line.contains('TERMUX_PACKAGE_NAME') && 
-                        !line.contains('BuildConfig.APPLICATION_ID') && 
-                        !line.contains('${TERMUX_PACKAGE_NAME}') &&
-                        !line.contains('TERMUX_PACKAGE_NAME}') &&
-                        !isManifestTopLevelClassReference &&
-                        !line.contains('com.termux.app.') && // Class reference
-                        !line.contains('com.termux.shared.') && // Class reference  
-                        !line.contains('com.termux.view.') && // Class reference
-                        !line.contains('com.termux.terminal.') && // Class reference
-                        !line.contains('com.termux.rafaelia.') && // Class reference
-                        !line.contains('from "com.termux"') && // Documentation references
-                        !line.contains('changed from "com.termux"')) { // Documentation references
-                        errors.add("${file.path}:${lineNumber}: ${trimmedLine}")
-                    }
-                }
-            }
-        }
-        
-        if (!errors.isEmpty()) {
-            def errorMsg = "\n❌ Found hardcoded package names (should use TERMUX_PACKAGE_NAME or placeholder):\n"
-            errors.each { errorMsg += "  ${it}\n" }
-            throw new GradleException(errorMsg)
-        } else {
-            println "✅ Package name validation passed!"
-        }
-    }
-}
-
-// Validation task to check for legacy storage flags
-task validateStorageFlags {
-    description = 'Validates that requestLegacyExternalStorage is not used when targeting SDK >= 30'
-    group = 'verification'
-    
-    doLast {
-        def targetSdk = android.defaultConfig.targetSdkVersion.apiLevel
-        if (targetSdk < 30) {
-            println "⚠️  targetSdkVersion is ${targetSdk}, skipping legacy storage check"
-            return
-        }
-        
-        def errors = []
-        def manifestFiles = fileTree(project.rootProject.projectDir) {
-            include '**/AndroidManifest.xml'
-            exclude '**/build/**'
-        }
-        
-        manifestFiles.each { file ->
-            def lineNumber = 0
-            file.eachLine { line ->
-                lineNumber++
-                if (line.contains('requestLegacyExternalStorage') && line.contains('true')) {
-                    errors.add("${file.path}:${lineNumber}: requestLegacyExternalStorage=true found")
-                }
-            }
-        }
-        
-        if (!errors.isEmpty()) {
-            def errorMsg = "\n❌ Found requestLegacyExternalStorage with targetSdk >= 30:\n"
-            errors.each { errorMsg += "  ${it}\n" }
-            throw new GradleException(errorMsg)
-        } else {
-            println "✅ Storage flags validation passed!"
-        }
-    }
-}
-
-// Validation task to check authorities use placeholders
-task validateAuthorities {
-    description = 'Validates that all authorities use ${TERMUX_PACKAGE_NAME} placeholder'
-    group = 'verification'
-    
-    doLast {
-        def errors = []
-        def manifestFiles = fileTree(project.rootProject.projectDir) {
-            include '**/AndroidManifest.xml'
-            exclude '**/build/**'
-        }
-        
-        manifestFiles.each { file ->
-            def lineNumber = 0
-            file.eachLine { line ->
-                lineNumber++
-                // Check for android:authorities with hardcoded package name
-                if (line.contains('android:authorities=') && 
-                    line.contains('com.termux') && 
-                    !line.contains('${TERMUX_PACKAGE_NAME}')) {
-                    errors.add("${file.path}:${lineNumber}: ${line.trim()}")
-                }
-            }
-        }
-        
-        if (!errors.isEmpty()) {
-            def errorMsg = "\n❌ Found authorities without placeholder:\n"
-            errors.each { errorMsg += "  ${it}\n" }
-            throw new GradleException(errorMsg)
-        } else {
-            println "✅ Authorities validation passed!"
-        }
-    }
-}
-
-tasks.register("validateSideBySideContract", Exec) {
-    description = 'Validates canonical side-by-side fork contract across build/runtime/manifest shortcuts'
-    group = 'verification'
-    commandLine "python3", "${rootProject.projectDir}/scripts/validate_side_by_side_contract.py"
-}
-
-def resolveApkFromMetadata = { String buildType ->
-    def metadataFile = file("${buildDir}/outputs/apk/${buildType}/output-metadata.json")
-    if (!metadataFile.exists()) {
-        throw new GradleException("APK metadata not found for ${buildType}: ${metadataFile}")
-    }
-
-    def metadata = new JsonSlurper().parse(metadataFile)
-    def elements = metadata?.elements ?: []
-    if (elements.isEmpty()) {
-        throw new GradleException("No APK outputs registered in ${metadataFile}")
-    }
-
-    def preferred = elements.find { element ->
-        def filters = element.filters ?: []
-        filters.isEmpty() || filters.any { filter -> filter.filterType == 'ABI' && filter.value == 'universal' }
-    } ?: elements[0]
-
-    def outputFileName = preferred.outputFile
-    if (!outputFileName) {
-        throw new GradleException("Invalid output metadata entry in ${metadataFile}: ${preferred}")
-    }
-
-    def apkFile = file("${buildDir}/outputs/apk/${buildType}/${outputFileName}")
-    if (!apkFile.exists()) {
-        throw new GradleException("Expected APK does not exist: ${apkFile}")
-    }
-
-    return apkFile
-}
-
-def register16kbValidationTask = { String buildType ->
-    def capitalized = buildType.capitalize()
-    tasks.register("validateAndroid15Compatibility${capitalized}", Exec) {
-        description = "Validate Android 15 16KB LOAD alignment for ${buildType} APK"
-        group = 'verification'
-        dependsOn("assemble${capitalized}")
-        doFirst {
-            def apkFile = resolveApkFromMetadata(buildType)
-            println "Validating APK ${apkFile}"
-            commandLine "bash",
-                    "${rootProject.projectDir}/scripts/validate_16kb_pages.sh",
-                    "--apk", apkFile.absolutePath,
-                    "--require-readelf",
-                    "--abis", "arm64-v8a,x86_64"
-        }
-    }
-}
-
-register16kbValidationTask("debug")
-register16kbValidationTask("release")
-
-// Master validation task that runs all checks
-tasks.register("validateAndroid15Compatibility") {
-    description = 'Runs all Android 15 compatibility validations'
-    group = 'verification'
-    dependsOn(
-            validatePackageNames,
-            validateStorageFlags,
-            validateAuthorities,
-            validateSideBySideContract,
-            tasks.named("validateAndroid15CompatibilityDebug"),
-            tasks.named("validateAndroid15CompatibilityRelease")
-    )
-
-    doLast {
-        println "\n✅ All Android 15 compatibility validations passed!"
-    }
-}
-
-
-tasks.register("validateExternalIntegrity", Exec) {
-    group = "verification"
-    description = "Validates bootstrap integrity contract via external/fallback backend."
-    commandLine "bash", "${rootDir}/scripts/raf_external_integrity.sh", "--backend", (System.getenv("RAF_INTEGRITY_BACKEND") ?: "python-blake3"), "--input", "app/src/main/cpp/bootstrap-arm.zip"
-}
-
-tasks.register("validateVectraGradeBenchContract") {
-    group = "verification"
-    description = "Validates Vectra contract artifacts when RAF_ENABLE_VECTRA_BENCH=true."
-    doLast {
-        def enabled = (System.getenv("RAF_ENABLE_VECTRA_BENCH") ?: "false").toBoolean()
-        if (!enabled) {
-            logger.lifecycle("RAF_ENABLE_VECTRA_BENCH=false; skipping Vectra artifact validation.")
-            return
-        }
-        def reportJson = file("${rootDir}/reports/vectra_integration_report.json")
-        def reportMd = file("${rootDir}/reports/vectra_integration_report.md")
-        if (!reportJson.exists() || !reportMd.exists()) {
-            throw new GradleException("Vectra benchmark contract enabled but required reports are missing.")
-        }
-    }
-}
-
-def rafEnvTrue = { String name, boolean defVal=false ->
-    def v = System.getenv(name)
-    return v == null ? defVal : v.equalsIgnoreCase('true')
-}
-
-tasks.register('validateAuditClaims', Exec) {
-    commandLine 'bash', "$rootDir/scripts/validate_audit_claims.sh"
-}
-
-tasks.register('collectVectraGradeBenchmarks', Exec) {
-    onlyIf { rafEnvTrue('RAF_ENABLE_VECTRA_BENCH', true) }
-    commandLine 'bash', "$rootDir/scripts/collect_vectra_grade_benchmarks.sh"
-}
-
-tasks.register('validateRmrEquivalence', Exec) {
-    onlyIf { rafEnvTrue('RAF_REQUIRE_RMR_EQUIVALENCE', false) || rafEnvTrue('RAF_ENABLE_VECTRA_BENCH', true) }
-    commandLine 'bash', "$rootDir/scripts/rmr_equivalence_check.sh"
-}
-
-tasks.register('deviceRuntimeSmoke') {
-    doLast {
-        def strict = rafEnvTrue('RAF_REQUIRE_DEVICE_RUNTIME', false)
-        def result = exec { commandLine 'bash', "$rootDir/scripts/device_runtime_smoke.sh"; ignoreExitValue true }
-        if (strict && result.exitValue != 0) throw new GradleException('device runtime smoke failed under strict mode')
-    }
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.4"
 }

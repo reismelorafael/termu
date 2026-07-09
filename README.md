@@ -29,7 +29,7 @@ This fork complies with the GPLv3 license of the original Termux project. All mo
 [![Termux library releases at Jitpack](https://jitpack.io/v/termux/termux-app.svg)](https://jitpack.io/#termux/termux-app)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Platform](https://img.shields.io/badge/platform-Android%207%2B-brightgreen)](https://developer.android.com)
-[![Architecture](https://img.shields.io/badge/arch-ARM32%20%7C%20ARM64%20%7C%20x86__64-orange)](rmr/Rrr/Android_nomalloc.mk)
+[![Architecture](https://img.shields.io/badge/arch-ARM32%20%7C%20ARM64-orange)](rmr/Rrr/Android_nomalloc.mk)
 [![C11 nomalloc](https://img.shields.io/badge/C-C11%20zero--malloc-blueviolet)](rmr/Rrr/cti_raw_reader.h)
 [![CTI BITSTACK](https://img.shields.io/badge/RAFAELIA-CTI%20BITSTACK-critical)](rmr/Rrr/cti_raw_reader.c)
 [![ZIPRAF](https://img.shields.io/badge/RAFAELIA-ZIPRAF%20Manifesto-critical)](rmr/Rrr/zipraf_index.c)
@@ -52,6 +52,27 @@ Quick how-to about Termux package management is available at [Package Management
 ***
 
 
+## Verdade operacional canônica
+
+- `compileSdkVersion=35`
+- `targetSdkVersion=28`
+- `minSdkVersion=21`
+- ABIs obrigatórias: `armeabi-v7a`, `arm64-v8a`
+- `universalApk=true`
+- package/applicationId: `com.termux.rafacodephi`
+
+### Estado epistêmico
+
+- **PROVADO**: build/release/contrato validado por comando ou CI.
+- **PARCIAL**: existe base funcional, mas falta validação real completa.
+- **TOKEN_VAZIO**: wrapper/bridge existe sem backend real. `pkg`, `apt`, `apt-get`, `dpkg`, `libapt` e `proot` permanecem nesta classe até o payload core real e testes `pkg update`/`pkg install`.
+- **EXPERIMENTAL**: pesquisa/otimização sem contrato de release.
+- **FUTURO**: planejado.
+
+O bootstrap atual fornece uma base mínima guardada para instalação e diagnóstico, mas ainda não equivale a uma distribuição Termux completa com backend apt real. A descrição correta é **Termux-compatible bootstrap shell environment** até pacote real ser provado.
+
+ZIPRAF não comprime fisicamente; cria endereçamento lógico multirresolução sobre bytes existentes. A VCPU atual é uma **RAFAELIA deterministic VCPU state kernel**, não uma VM completa.
+
 ## Fork Contract: Upstream vs RAFCODEΦ
 
 ### A) Termux Upstream (base)
@@ -61,6 +82,7 @@ Quick how-to about Termux package management is available at [Package Management
 ### B) Alterações RAFCODEΦ
 - Identidade side-by-side própria: `com.termux.rafacodephi`.
 - Pipeline RAFAELIA com preparação explícita de bootstrap e validações de contrato.
+- Fonte de pacotes/bootstrap RAFCODEΦ: `https://github.com/exacordex-crypto/termux-packagesRafcodephi`, consumida por CI como fonte de código/metadata com commit fixado, nunca como binário versionado neste repo.
 
 ### C) Módulo low-level RMR
 - Módulo nativo C/ASM com JNI fino, fallback C e dispatch runtime por capacidades.
@@ -68,7 +90,7 @@ Quick how-to about Termux package management is available at [Package Management
 
 ### D) Compatibilidade Android 15/16
 - Binários nativos com alinhamento para page size 16KB via linker flags.
-- ABIs validadas na trilha de build: `armeabi-v7a`, `arm64-v8a`, `x86_64` (e universal quando gerado).
+- ABIs oficiais validadas na trilha de build: `armeabi-v7a` (ARM ABI7) e `arm64-v8a` (ARM ABI8), além do APK universal quando gerado.
 
 ### E) Bootstrap e Signing
 - Bootstraps obrigatórios e hashes BLAKE3 verificados antes de builds críticos.
@@ -79,8 +101,8 @@ Quick how-to about Termux package management is available at [Package Management
 
 Fonte única oficial: `gradle.properties`.
 
-- `termux.abi.matrix=armeabi-v7a,arm64-v8a,x86_64` (ABIs obrigatórias)
-- `termux.abi.optional=x86` (ABI opcional de compatibilidade)
+- `termux.abi.matrix=armeabi-v7a,arm64-v8a` (ABIs obrigatórias)
+- `termux.abi.optional=` (nenhuma ABI opcional; x86/x86_64 não fazem parte da trilha ARM oficial)
 - `termux.abi.universal=true` (universal APK quando gerado)
 
 Contratos:
@@ -286,8 +308,12 @@ eval "$(./scripts/prepare_bootstrap_env.sh --print-env)"
 # Build debug/release (split APKs habilitado)
 ./scripts/build_release_artifacts.sh
 
-# Matriz completa de artefatos + assinatura local auxiliar + SHA256
-./scripts/build_apk_matrix.sh
+# Matriz interna completa: APKs debug/release unsigned + release assinado por chave local de validação + SHA256
+RELEASE_TRACK=internal ./scripts/build_apk_matrix.sh
+
+# Matriz oficial: exige KEYSTORE_PATH/KEY_ALIAS/STORE_PASS/KEY_PASS externos e remove release unsigned
+# da árvore publicável depois da assinatura.
+RELEASE_TRACK=official KEYSTORE_PATH=/path/release.jks KEY_ALIAS=... STORE_PASS=... KEY_PASS=... ./scripts/build_apk_matrix.sh
 ```
 
 Variáveis exportadas por `prepare_bootstrap_env.sh`:
@@ -317,7 +343,7 @@ Release signing oficial é opcional e controlado por:
 | oficial | Obrigatória em `dist/apk-matrix/signed` | Não | Falha se faltar APK assinado por ABI, se houver release unsigned, se hash/nome divergirem de `SHA256SUMS.txt`, ou se `BOOTSTRAP_BAREMETAL_STRICT!=true`. |
 | interna | Obrigatória em `dist/apk-matrix/signed` | Sim, apenas para validação explícita em `dist/apk-matrix/unsigned` | Falha se nomes de signed/unsigned violarem contrato ou se hashes não baterem com `SHA256SUMS.txt`. |
 
-Validação única de contrato executada por `./gradlew verifyReleaseContract` antes de qualquer upload de artefato no workflow `apk_matrix_build.yml`.
+Validação única de contrato executada por `./gradlew verifyReleaseContract` antes de qualquer upload de artefato no workflow `apk_matrix_build.yml`. A trilha `official` prepara automaticamente a keystore oficial a partir dos secrets `OFFICIAL_RELEASE_KEYSTORE_B64`, `OFFICIAL_RELEASE_KEY_ALIAS`, `OFFICIAL_RELEASE_STORE_PASSWORD` e `OFFICIAL_RELEASE_KEY_PASSWORD`; se esses secrets não existirem, o job falha em vez de cair para assinatura local. A trilha `internal` é a única que usa a keystore local gerada em `dist/local-release.keystore` e mantém release unsigned para auditoria.
 
 O módulo nativo mantém dispatch runtime com fallback C seguro para ARM32/ARM64 quando NEON ASM não estiver disponível em runtime.
 
@@ -803,7 +829,19 @@ Every contribution, no matter how small, is significant and acknowledged. Even a
 - `TERMUX_BOOTSTRAP_VALIDATION_MODE=upstream-debug-compat` é bloqueado nos scripts de release.
 - Hashes de bootstrap BLAKE3 e SHA256 são gerados por `scripts/prepare_bootstrap_env.sh`.
 
-ABIs validadas na trilha de build local: `armeabi-v7a`, `arm64-v8a` e `x86_64`.
+ABIs validadas na trilha de build local/oficial: `armeabi-v7a` e `arm64-v8a`; APK universal pode ser gerado pela matriz, mas x86/x86_64 não fazem parte da trilha ARM oficial.
+
+### termux-packagesRafcodephi source contract
+
+A fonte externa oficial para pacotes/bootstrap RAFCODEΦ é `https://github.com/exacordex-crypto/termux-packagesRafcodephi`. O APK continua sendo construído neste repositório Android; o fork de pacotes é tratado como origem de fonte/metadata, validada por `scripts/validate_rafcodephi_packages_source.sh` antes da matriz de APK.
+
+Variáveis aceitas pela CI:
+
+- `TERMUX_PACKAGES_RAF_REPO`: deve apontar para `exacordex-crypto/termux-packagesRafcodephi`.
+- `TERMUX_PACKAGES_RAF_REF`: commit fixado de 40 caracteres para builds reproduzíveis.
+- `TERMUX_PACKAGES_RAF_REQUIRE_PINNED=true`: bloqueia branches flutuantes em release/CI.
+
+O manifesto `dist/source-contract/TERMUX_PACKAGES_RAFCODEPHI_SOURCE.env` é gerado em CI e anexado aos artefatos de relatório. Binários `.jar`, `.zip`, `.bin` e APKs são produtos de CI/build, não fonte versionada.
 
 ## ROADMAP
 

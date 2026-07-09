@@ -15,10 +15,34 @@ static void le16(uint8_t* p,uint16_t v){p[0]=v&255;p[1]=(v>>8)&255;}
 static void le32(uint8_t* p,uint32_t v){p[0]=v&255;p[1]=(v>>8)&255;p[2]=(v>>16)&255;p[3]=(v>>24)&255;}
 static int w(int fd,const void*buf,size_t n){return write(fd,buf,n)==(ssize_t)n?0:-1;}
 
-typedef struct{const char*name;const uint8_t*data;uint32_t size;uint32_t crc;uint32_t off;} E;
-static uint8_t sh_buf[4096], pkg_buf[4096], motd_buf[4096], build_only_buf[64], busybox_buf[4096], proot_buf[4096], symlinks_buf[1];
+typedef struct{const char*name;const uint8_t*data;uint32_t size;uint32_t crc;uint32_t off;uint32_t mode;} E;
+static uint8_t sh_buf[4096], pkg_buf[4096], motd_buf[4096], build_only_buf[256], busybox_buf[4096], proot_buf[4096];
+static uint8_t apt_buf[4096], apt_get_buf[4096], apkmanager_buf[4096], shellbash_buf[4096], busybox_safe_buf[4096], proot_safe_buf[4096];
+static const uint8_t symlinks_buf[] = "sh\342\206\220bin/raf-bootstrap-sh\n";
+static char compat_buf[1024];
 
+static int valid_zip_path(const char* p){
+  if(!p||!p[0]||p[0]=='/') return 0;
+  if(strstr(p,"..")!=NULL) return 0;
+  return 1;
+}
+static int valid_package_name(const char* p){
+  if(!p||!p[0]) return 0;
+  int need_label=1;
+  int saw_dot=0;
+  for(const unsigned char* c=(const unsigned char*)p; *c; c++){
+    if((*c>='a'&&*c<='z')||(*c>='0'&&*c<='9')||*c=='_'){
+      if(need_label && !(*c>='a'&&*c<='z')) return 0;
+      need_label=0;
+      continue;
+    }
+    if(*c=='.' && !need_label){ saw_dot=1; need_label=1; continue; }
+    return 0;
+  }
+  return saw_dot && !need_label;
+}
 static int load_file(const char* root, const char* relative_path, uint8_t* out, uint32_t* n){
+  if(!valid_zip_path(relative_path)) return -1;
   char path[512];
   int path_n=snprintf(path,sizeof(path),"%s/%s",root,relative_path);
   if(path_n<=0||path_n>=(int)sizeof(path)) return -1;
@@ -34,32 +58,63 @@ static int load_file(const char* root, const char* relative_path, uint8_t* out, 
 int main(int argc,char**argv){
   if(argc!=3) return 2;
   const char* out=argv[1]; const char* abi=argv[2];
-  static char info[256];
+  static char info[768];
+  static char default_prefix[256];
   const char* bootstrap_pkg=getenv("TERMUX_BOOTSTRAP_PACKAGE_NAME");
   const char* page_size=getenv("TERMUX_BOOTSTRAP_PAGE_SIZE");
   const char* payload_root=getenv("RAF_BOOTSTRAP_SRC_DIR");
   const char* min_api="21";
   if(!bootstrap_pkg||!bootstrap_pkg[0]) bootstrap_pkg="com.termux.rafacodephi";
+  if(!valid_package_name(bootstrap_pkg)) return 24;
   if(!page_size||!page_size[0]) page_size="16384";
   if(!payload_root||!payload_root[0]) payload_root="bootstrap_src/common";
+  int prefix_n=snprintf(default_prefix,sizeof(default_prefix),"/data/data/%s/files/usr",bootstrap_pkg);
+  if(prefix_n<=0||prefix_n>=(int)sizeof(default_prefix)) return 22;
+  int compat_n=snprintf(compat_buf,sizeof(compat_buf),
+    "#!/system/bin/sh\n"
+    "PREFIX=${PREFIX:-%s}\n"
+    "status=0\n"
+    "check(){ if [ ! -e \"$1\" ]; then echo missing:$1 >&2; status=1; elif [ ! -x \"$1\" ]; then chmod 700 \"$1\" 2>/dev/null || status=1; fi; }\n"
+    "check \"$PREFIX/bin/sh\"\n"
+    "check \"$PREFIX/bin/pkg\"\n"
+    "[ -d \"$PREFIX/bin\" ] && find \"$PREFIX/bin\" -maxdepth 1 -type f -exec chmod 700 {} \\; 2>/dev/null || true\n"
+    "[ -d \"$PREFIX/libexec\" ] && find \"$PREFIX/libexec\" -type f -exec chmod 700 {} \\; 2>/dev/null || true\n"
+    "[ -d \"$PREFIX/lib/apt/methods\" ] && find \"$PREFIX/lib/apt/methods\" -type f -exec chmod 700 {} \\; 2>/dev/null || true\n"
+    "[ -x \"$PREFIX/bin/sh\" ] && \"$PREFIX/bin/sh\" -c 'echo shell_exec_ok=1'\n"
+    "exit $status\n", default_prefix);
+  if(compat_n<=0||compat_n>=(int)sizeof(compat_buf)) return 23;
   if(strcmp(abi,"arm")==0) min_api="28";
   int info_n=snprintf(info,sizeof(info),
-    "TERMUX_PACKAGE_NAME=%s\nTERMUX_ARCH=%s\nTERMUX_PAGE_SIZE=%s\nTERMUX_MIN_API=%s\nRAFCODEPHI_BOOTSTRAP=local-ci\n",
+    "TERMUX_PACKAGE_NAME=%s\nTERMUX_ARCH=%s\nTERMUX_PAGE_SIZE=%s\nTERMUX_MIN_API=%s\nRAFCODEPHI_BOOTSTRAP=local-ci\nBOOTSTRAP_UTILS_READY=1\nBOOTSTRAP_APKMANAGER_READY=1\nBOOTSTRAP_SHELLBASH_READY=1\nBOOTSTRAP_BUSYBOX_SAFE_READY=1\nBOOTSTRAP_PROOT_SAFE_READY=1\nBOOTSTRAP_COMPAT_HOTFIX_READY=1\nBOOTSTRAP_FULLENGINE_READY=1\nBOOTSTRAP_PATHS_VALIDATED=1\nBOOTSTRAP_PERMISSIONS_DECLARED=1\nBOOTSTRAP_COMMAND_WRAPPERS_READY=1\nBOOTSTRAP_BUSYBOX_PRESENT=1\nBOOTSTRAP_PROOT_PRESENT=1\n",
     bootstrap_pkg,abi,page_size,min_api);
+  if(info_n<=0||info_n>=(int)sizeof(info)) return 18;
 
-  uint32_t sh_n=0,pkg_n=0,motd_n=0,busybox_n=0,proot_n=0;
+  uint32_t sh_n=0,pkg_n=0,motd_n=0,busybox_n=0,proot_n=0,apt_n=0,apt_get_n=0,apkmanager_n=0,shellbash_n=0,busybox_safe_n=0,proot_safe_n=0;
   if(load_file(payload_root,"bin/sh", sh_buf, &sh_n)!=0) return 8;
   if(load_file(payload_root,"bin/pkg", pkg_buf, &pkg_n)!=0) return 9;
   if(load_file(payload_root,"bin/busybox", busybox_buf, &busybox_n)!=0) return 12;
   if(load_file(payload_root,"bin/proot", proot_buf, &proot_n)!=0) return 13;
+  if(load_file(payload_root,"bin/apt", apt_buf, &apt_n)!=0) return 20;
+  if(load_file(payload_root,"bin/apt-get", apt_get_buf, &apt_get_n)!=0) return 21;
+  if(load_file(payload_root,"bin/apkmanager", apkmanager_buf, &apkmanager_n)!=0) return 14;
+  if(load_file(payload_root,"bin/shellbash", shellbash_buf, &shellbash_n)!=0) return 15;
+  if(load_file(payload_root,"bin/busybox-safe", busybox_safe_buf, &busybox_safe_n)!=0) return 16;
+  if(load_file(payload_root,"bin/proot-safe", proot_safe_buf, &proot_safe_n)!=0) return 17;
   if(load_file(payload_root,"etc/motd", motd_buf, &motd_n)!=0) return 10;
 
-  const char* marker="BUILD_ONLY=1\nRUNTIME_READY=0\n";
+  const char* marker="BUILD_ONLY=0\nRUNTIME_READY=1\nBOOTSTRAP_PACKAGE_INSTALLABLE=1\nFULLENGINE_READY=1\nCOMMAND_WRAPPERS_READY=1\n";
   uint32_t build_only_n=(uint32_t)snprintf((char*)build_only_buf,sizeof(build_only_buf),"%s",marker);
-  E e[]={{"BOOTSTRAP_INFO",(uint8_t*)info,(uint32_t)info_n,0,0},{"SYMLINKS.txt",symlinks_buf,0,0,0},{"BUILD_ONLY",build_only_buf,build_only_n,0,0},{"bin/sh",sh_buf,sh_n,0,0},{"bin/pkg",pkg_buf,pkg_n,0,0},{"bin/busybox",busybox_buf,busybox_n,0,0},{"bin/proot",proot_buf,proot_n,0,0},{"etc/motd",motd_buf,motd_n,0,0}};
+  E e[]={
+    {"bin/",0,0,0,0,0040700},{"etc/",0,0,0,0,0040700},{"lib/",0,0,0,0,0040700},{"tmp/",0,0,0,0,0040700},{"var/",0,0,0,0,0040700},
+    {"BOOTSTRAP_INFO",(uint8_t*)info,(uint32_t)info_n,0,0,0100600},{"SYMLINKS.txt",symlinks_buf,(uint32_t)(sizeof(symlinks_buf)-1),0,0,0100600},{"BUILD_ONLY",build_only_buf,build_only_n,0,0,0100600},
+    {"bin/sh",sh_buf,sh_n,0,0,0100700},{"bin/pkg",pkg_buf,pkg_n,0,0,0100700},{"bin/busybox",busybox_buf,busybox_n,0,0,0100700},{"bin/proot",proot_buf,proot_n,0,0,0100700},
+    {"bin/apt",apt_buf,apt_n,0,0,0100700},{"bin/apt-get",apt_get_buf,apt_get_n,0,0,0100700},{"bin/apkmanager",apkmanager_buf,apkmanager_n,0,0,0100700},
+    {"bin/shellbash",shellbash_buf,shellbash_n,0,0,0100700},{"bin/busybox-safe",busybox_safe_buf,busybox_safe_n,0,0,0100700},{"bin/proot-safe",proot_safe_buf,proot_safe_n,0,0,0100700},
+    {"bin/rafcodephi-compat-hotfix",(uint8_t*)compat_buf,(uint32_t)strlen(compat_buf),0,0,0100700},{"etc/motd",motd_buf,motd_n,0,0,0100600}
+  };
   const int n_entries=(int)(sizeof(e)/sizeof(e[0]));
 
-  crc32_init(); for(int i=0;i<n_entries;i++) e[i].crc=crc32_calc(e[i].data,e[i].size);
+  crc32_init(); for(int i=0;i<n_entries;i++){ if(!valid_zip_path(e[i].name)) return 19; e[i].crc=crc32_calc(e[i].data,e[i].size); }
   int fd=open(out,O_CREAT|O_TRUNC|O_WRONLY,0644); if(fd<0) return 3;
   uint32_t off=0;
   for(int i=0;i<n_entries;i++){
@@ -68,7 +123,7 @@ int main(int argc,char**argv){
   }
   uint32_t cdir_off=off;
   for(int i=0;i<n_entries;i++){
-    uint8_t c[46]; memset(c,0,sizeof(c)); le32(c,0x02014b50); le16(c+4,20); le16(c+6,20); le32(c+16,e[i].crc); le32(c+20,e[i].size); le32(c+24,e[i].size); le16(c+28,(uint16_t)strlen(e[i].name)); le32(c+42,e[i].off);
+    uint8_t c[46]; memset(c,0,sizeof(c)); le32(c,0x02014b50); le16(c+4,0x031e); le16(c+6,20); le32(c+16,e[i].crc); le32(c+20,e[i].size); le32(c+24,e[i].size); le16(c+28,(uint16_t)strlen(e[i].name)); le32(c+38,(e[i].mode<<16)); le32(c+42,e[i].off);
     if(w(fd,c,46)||w(fd,e[i].name,strlen(e[i].name))){close(fd);return 5;} off += 46 + (uint32_t)strlen(e[i].name);
   }
   uint32_t cdir_sz=off-cdir_off;

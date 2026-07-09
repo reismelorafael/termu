@@ -38,6 +38,11 @@ def is_shebang_script(path: Path):
     except Exception:
         return False
 
+
+def is_runtime_executable(path: Path):
+    return is_elf(path) or (path.is_file() and (os.access(path, os.X_OK) or is_shebang_script(path)))
+
+
 def is_text(path: Path):
     if path.suffix in TEXT_EXTS or path.name in TEXT_NAMES:
         return True
@@ -48,7 +53,6 @@ def is_text(path: Path):
         return out.stdout.strip().startswith('text/')
     except Exception:
         return False
-
 
 
 def extract_zip_preserve_symlinks(zip_path: Path, dest: Path):
@@ -74,6 +78,7 @@ def extract_zip_preserve_symlinks(zip_path: Path, dest: Path):
                 if perm:
                     out.chmod(perm)
 
+
 def deterministic_zip(src: Path, outzip: Path):
     with zipfile.ZipFile(outzip, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
         for p in sorted(src.rglob('*')):
@@ -90,6 +95,35 @@ def deterministic_zip(src: Path, outzip: Path):
                 zi.external_attr = ((st.st_mode & 0xFFFF) << 16)
                 with p.open('rb') as f:
                     zf.writestr(zi, f.read())
+
+
+def write_executable_script(path: Path, text: str):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() or path.is_symlink():
+        path.unlink()
+    path.write_text(text, encoding='utf-8')
+    path.chmod(0o700)
+
+
+def ensure_relative_symlink(staging: Path, link_rel: str, target_rel: Path):
+    link = staging / link_rel
+    target = staging / target_rel
+    if not target.exists() and not target.is_symlink():
+        raise SystemExit(f'Cannot create runtime alias {link_rel}: target missing: {target_rel}')
+    if link.exists() or link.is_symlink():
+        return
+    link.parent.mkdir(parents=True, exist_ok=True)
+    os.symlink(os.path.relpath(target, link.parent), link)
+
+
+def sanitize_prefix(prefix: str) -> str:
+    value = prefix.rstrip('/')
+    if not value.startswith('/data/data/') and not value.startswith('/data/user/0/'):
+        raise SystemExit(f'Unsafe prefix for bootstrap utility launchers: {prefix}')
+    if "'" in value or '\n' in value or '\r' in value:
+        raise SystemExit(f'Unsafe prefix characters for bootstrap utility launchers: {prefix}')
+    return value
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -108,6 +142,7 @@ def main():
     ap.add_argument('--report-dir', default='build/reports/bootstrap-rewrite')
     args = ap.parse_args()
 
+    runtime_prefix = sanitize_prefix(args.prefix)
     staging = Path(args.workdir) / args.arch
     if staging.exists(): shutil.rmtree(staging)
     staging.mkdir(parents=True, exist_ok=True)
@@ -169,16 +204,6 @@ def main():
                 p.write_text(new, encoding='utf-8')
                 changed.append(str(rel))
 
-    (staging/'BOOTSTRAP_INFO').write_text(
-        f'TERMUX_PACKAGE_NAME={args.package_name}\nTERMUX_ARCH={args.arch}\nTERMUX_ABI={args.abi}\nTERMUX_PACKAGE_VARIANT={args.variant}\nTERMUX_PREFIX={args.prefix}\nTERMUX_HOME={args.home}\nTERMUX_PAGE_SIZE={args.page_size}\nBOOTSTRAP_KIND=rewritten\nBOOTSTRAP_RUNTIME_READY=1\nBOOTSTRAP_REWRITE_VERSION=1\n', encoding='utf-8')
-    bo = staging/'BUILD_ONLY'
-    if bo.exists(): bo.write_text('0\n', encoding='utf-8')
-
-    runtime_candidates = {
-        'shell': ('bin/sh', 'usr/bin/sh', 'bin/bash', 'usr/bin/bash', 'bin/dash', 'usr/bin/dash'),
-        'pkg': ('bin/pkg', 'usr/bin/pkg'),
-    }
-
     def resolve_runtime_candidate(path: Path):
         rel_cur = path.relative_to(staging)
         seen = set()
@@ -202,28 +227,98 @@ def main():
                 )
             rel_cur = next_rel
 
-    for kind, candidates in runtime_candidates.items():
-        candidate = None
-        resolved = None
+    def find_runtime_tool(kind: str, candidates):
         for c in candidates:
             p = staging / c
             if not (p.exists() or p.is_symlink()):
                 continue
-            try:
-                rp = resolve_runtime_candidate(p)
-            except SystemExit:
-                continue
+            rp = resolve_runtime_candidate(p)
             if rp is None:
                 continue
-            if kind == 'shell' and not (is_elf(rp) or (rp.is_file() and (os.access(rp, os.X_OK) or is_shebang_script(rp)))):
+            if not is_runtime_executable(rp):
                 continue
-            candidate = p
-            resolved = rp
-            break
+            return Path(c), rp
+        joined = ', '.join(candidates)
+        raise SystemExit(f'Missing runtime tool ({kind}) (checked: {joined})')
 
-        if candidate is None or resolved is None:
-            joined = ', '.join(candidates)
-            raise SystemExit(f'Missing runtime tool ({kind}) (checked: {joined})')
+    shell_rel, _ = find_runtime_tool(
+        'shell', ('bin/sh', 'usr/bin/sh', 'bin/bash', 'usr/bin/bash', 'bin/dash', 'usr/bin/dash'))
+    pkg_rel, _ = find_runtime_tool('pkg', ('bin/pkg', 'usr/bin/pkg'))
+
+    ensure_relative_symlink(staging, 'bin/sh', shell_rel)
+    ensure_relative_symlink(staging, 'bin/pkg', pkg_rel)
+
+    apkmanager = staging / 'bin' / 'apkmanager'
+    write_executable_script(apkmanager, f"""#!{runtime_prefix}/bin/sh
+# RAFCODEPHI bootstrap package-manager shim.
+# Minimal wrapper: no external dependency beyond the bootstrap shell and pkg.
+exec '{runtime_prefix}/bin/pkg' "$@"
+""")
+    changed.append('bin/apkmanager')
+
+    shellbash = staging / 'bin' / 'shellbash'
+    write_executable_script(shellbash, f"""#!{runtime_prefix}/bin/sh
+# RAFCODEPHI shell launcher. Prefer bash when present; otherwise use bootstrap sh.
+if [ -x '{runtime_prefix}/bin/bash' ]; then
+    exec '{runtime_prefix}/bin/bash' "$@"
+fi
+exec '{runtime_prefix}/bin/sh' "$@"
+""")
+    changed.append('bin/shellbash')
+
+    busybox_safe = staging / 'bin' / 'busybox-safe'
+    write_executable_script(busybox_safe, f"""#!{runtime_prefix}/bin/sh
+# Optional busybox launcher. Does not fake busybox when the bootstrap does not ship it.
+if [ -x '{runtime_prefix}/bin/busybox' ]; then
+    exec '{runtime_prefix}/bin/busybox' "$@"
+fi
+echo 'busybox is optional and is not present in this bootstrap' >&2
+exit 127
+""")
+    changed.append('bin/busybox-safe')
+
+    proot_safe = staging / 'bin' / 'proot-safe'
+    write_executable_script(proot_safe, f"""#!{runtime_prefix}/bin/sh
+# Optional proot launcher. Does not fake proot when the bootstrap does not ship it.
+if [ -x '{runtime_prefix}/bin/proot' ]; then
+    exec '{runtime_prefix}/bin/proot' "$@"
+fi
+echo 'proot is optional and is not present in this bootstrap' >&2
+exit 127
+""")
+    changed.append('bin/proot-safe')
+
+    runtime_candidates = {
+        'shell': ('bin/sh',),
+        'pkg': ('bin/pkg',),
+        'apkmanager': ('bin/apkmanager',),
+        'shellbash': ('bin/shellbash',),
+    }
+
+    for kind, candidates in runtime_candidates.items():
+        find_runtime_tool(kind, candidates)
+
+    busybox_present = 1 if (staging / 'bin' / 'busybox').exists() else 0
+    proot_present = 1 if (staging / 'bin' / 'proot').exists() else 0
+
+    (staging/'BOOTSTRAP_INFO').write_text(
+        f'TERMUX_PACKAGE_NAME={args.package_name}\n'
+        f'TERMUX_ARCH={args.arch}\n'
+        f'TERMUX_ABI={args.abi}\n'
+        f'TERMUX_PACKAGE_VARIANT={args.variant}\n'
+        f'TERMUX_PREFIX={args.prefix}\n'
+        f'TERMUX_HOME={args.home}\n'
+        f'TERMUX_PAGE_SIZE={args.page_size}\n'
+        f'BOOTSTRAP_KIND=rewritten\n'
+        f'BOOTSTRAP_RUNTIME_READY=1\n'
+        f'BOOTSTRAP_UTILS_READY=1\n'
+        f'BOOTSTRAP_APKMANAGER_READY=1\n'
+        f'BOOTSTRAP_SHELLBASH_READY=1\n'
+        f'BOOTSTRAP_BUSYBOX_PRESENT={busybox_present}\n'
+        f'BOOTSTRAP_PROOT_PRESENT={proot_present}\n'
+        f'BOOTSTRAP_REWRITE_VERSION=2\n', encoding='utf-8')
+    bo = staging/'BUILD_ONLY'
+    if bo.exists(): bo.write_text('0\n', encoding='utf-8')
 
     for p in staging.rglob('*'):
         if p.is_file() and is_text(p):
@@ -254,11 +349,12 @@ def main():
             )
 
     deterministic_zip(staging, Path(args.output))
-    text_report.write_text('\n'.join(changed)+'\n', encoding='utf-8')
+    text_report.write_text('\n'.join(sorted(set(changed)))+'\n', encoding='utf-8')
     elf_report.write_text('\n'.join(elf_lines)+'\n', encoding='utf-8')
     print(
         f"[rewrite_bootstrap] zip={args.input} scanned={scanned_files} legacy_found={len(legacy_hits)} "
-        f"rewritten_text={len(changed)} blocked={len(blocked)} allowlisted={len(allowed)}"
+        f"rewritten_text={len(changed)} blocked={len(blocked)} allowlisted={len(allowed)} "
+        f"busybox_present={busybox_present} proot_present={proot_present}"
     )
     print(f'rewritten: {args.output}')
 

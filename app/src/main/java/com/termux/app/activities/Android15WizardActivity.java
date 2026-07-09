@@ -24,6 +24,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.termux.rafacodephi.R;
+import com.termux.app.TermuxInstaller;
 import com.termux.shared.activity.media.AppCompatActivityUtils;
 import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.theme.NightMode;
@@ -139,10 +140,11 @@ public class Android15WizardActivity extends AppCompatActivity {
         // Step 3: Bootstrap Verification
         wizardChecks.add(new WizardCheck(
             "Bootstrap Installation",
-            "Verifying the Termux bootstrap installation:\n\n" +
+            "Verifying and installing the Termux filesystem before terminal startup:\n\n" +
             "• Checking PREFIX directory\n" +
-            "• Verifying essential binaries\n" +
-            "• Validating 16KB page alignment",
+            "• Verifying sh, pkg, busybox and proot\n" +
+            "• Installing bootstrap payload with rollback on failure\n" +
+            "• Keeping permissions before first terminal execution",
             this::checkBootstrapInstallation
         ));
         
@@ -237,6 +239,11 @@ public class Android15WizardActivity extends AppCompatActivity {
                     addButton("Disable Battery Optimization", v -> openBatterySettings());
                 }
                 break;
+            case 3: // Bootstrap Installation
+                if (!passed) {
+                    addButton("Install Filesystem", v -> installBootstrapFilesystem());
+                }
+                break;
             case 4: // System Compatibility
                 addButton("View Full Audit Report", v -> openAuditActivity());
                 break;
@@ -316,10 +323,14 @@ public class Android15WizardActivity extends AppCompatActivity {
         File binDir = new File(TermuxConstants.TERMUX_BIN_PREFIX_DIR_PATH);
         File shellFile = new File(TermuxConstants.TERMUX_PREFIX_DIR_PATH + "/bin/sh");
         File pkgFile = new File(TermuxConstants.TERMUX_PREFIX_DIR_PATH + "/bin/pkg");
+        File busyboxFile = new File(TermuxConstants.TERMUX_PREFIX_DIR_PATH + "/bin/busybox");
+        File prootFile = new File(TermuxConstants.TERMUX_PREFIX_DIR_PATH + "/bin/proot");
 
         return prefixDir.exists() && binDir.exists() &&
-            shellFile.exists() && shellFile.canRead() &&
-            pkgFile.exists() && pkgFile.canRead();
+            shellFile.exists() && shellFile.canExecute() &&
+            pkgFile.exists() && pkgFile.canExecute() &&
+            busyboxFile.exists() && busyboxFile.canExecute() &&
+            prootFile.exists() && prootFile.canExecute();
     }
     
     private boolean checkSystemCompatibility() {
@@ -376,6 +387,10 @@ public class Android15WizardActivity extends AppCompatActivity {
         }
     }
     
+    private void installBootstrapFilesystem() {
+        TermuxInstaller.setupBootstrapIfNeeded(this, this::updateWizardStep);
+    }
+
     private void openAuditActivity() {
         Intent intent = new Intent(this, SystemAuditActivity.class);
         startActivity(intent);

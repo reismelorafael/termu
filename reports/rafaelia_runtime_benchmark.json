@@ -1,0 +1,83 @@
+{
+  "timestamp_utc": "2026-07-09T16:06:13Z",
+  "benchmarks": [
+    {
+      "name": "startup",
+      "status": "PASS",
+      "duration_ms": 2012,
+      "output": ""
+    },
+    {
+      "name": "prefix_create",
+      "status": "PASS",
+      "duration_ms": 1988,
+      "output": ""
+    },
+    {
+      "name": "sh_echo",
+      "status": "PASS",
+      "duration_ms": 20,
+      "output": "ok"
+    },
+    {
+      "name": "pkg_help",
+      "status": "SKIPPED",
+      "duration_ms": 1796,
+      "output": ""
+    },
+    {
+      "name": "apt_help",
+      "status": "PASS",
+      "duration_ms": 1841,
+      "output": "apt 2.8.3 (amd64) Usage: apt [options] command  apt is a commandline package manager and provides commands for searching and managing as well as querying information about packages. It provides the sa"
+    },
+    {
+      "name": "proot_version",
+      "status": "SKIPPED",
+      "duration_ms": 2019,
+      "output": ""
+    },
+    {
+      "name": "rafaelia_jni",
+      "status": "SKIPPED",
+      "duration_ms": 9631,
+      "output": " FAILURE: Build failed with an exception.  * What went wrong: BUG! exception in phase 'semantic analysis' in source unit '_BuildScript_' Unsupported class file major version 69 > Unsupported class fil"
+    },
+    {
+      "name": "cti_scan_1mb",
+      "status": "PASS",
+      "duration_ms": 1834,
+      "output": ""
+    },
+    {
+      "name": "cti_scan_4mb",
+      "status": "PASS",
+      "duration_ms": 1931,
+      "output": ""
+    },
+    {
+      "name": "zipraf_manifest_build",
+      "status": "PASS",
+      "duration_ms": 1925,
+      "output": ""
+    },
+    {
+      "name": "vcpu_10hz",
+      "status": "SKIPPED",
+      "duration_ms": 2199,
+      "output": ""
+    },
+    {
+      "name": "vcpu_60hz",
+      "status": "SKIPPED",
+      "duration_ms": 2113,
+      "output": ""
+    },
+    {
+      "name": "vcpu_1000_steps",
+      "status": "SKIPPED",
+      "duration_ms": 2183,
+      "output": ""
+    }
+  ]
+}
