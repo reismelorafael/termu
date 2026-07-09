@@ -23,8 +23,17 @@ def test_build_apk_matrix_validates_hashes_for_required_abi_policy_only():
     assert 'for v in AARCH64 ARM I686 X86_64' not in text
 
 
+def test_build_apk_matrix_can_continue_past_unit_test_diagnostics_for_beta():
+    text = BUILD_MATRIX.read_text(encoding='utf-8')
+    assert 'APK_MATRIX_UNIT_TESTS_REQUIRED="${APK_MATRIX_UNIT_TESTS_REQUIRED:-true}"' in text
+    assert ':app:testDebugUnitTest failed and APK_MATRIX_UNIT_TESTS_REQUIRED=true' in text
+    assert 'continuing to compile beta APKs' in text
+    assert 'APK_MATRIX_DIAGNOSTIC.md' in text
+
+
 def test_beta_workflow_forces_local_bootstrap_payload_source_for_apk_matrix():
     text = BETA_WORKFLOW.read_text(encoding='utf-8')
     assert 'id: apk_matrix' in text
     assert 'RAF_BOOTSTRAP_SOURCE: local' in text
     assert 'RELEASE_TRACK: internal' in text
+    assert 'APK_MATRIX_UNIT_TESTS_REQUIRED: "false"' in text
