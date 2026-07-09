@@ -25,7 +25,7 @@ static uint8_t wrapper_bufs[MAX_COMMAND_WRAPPERS][4096];
 static uint32_t wrapper_sizes[MAX_COMMAND_WRAPPERS];
 static char wrapper_paths[MAX_COMMAND_WRAPPERS][64];
 static const uint8_t symlinks_buf[] = "sh\342\206\220bin/raf-bootstrap-sh\n";
-static char compat_buf[1024];
+static char compat_buf[4096];
 
 static const char* command_wrapper_names[] = {
   "cat","ls","clear","head","tail","grep","sed","awk","cut","tr","wc","sort","uniq","xargs","tee",
