@@ -23,7 +23,7 @@ REWRITTEN_ZIPS = (
     "rewritten-bootstrap-aarch64.zip",
     "rewritten-bootstrap-arm.zip",
     "rewritten-bootstrap-i686.zip",
-    "rewritten-bootstrap-x86_64.zip",
+    "rewritten-bootstrap_x86_64.zip".replace("_x86", "-x86"),
 )
 
 RUNTIME_FILES = (
@@ -37,34 +37,34 @@ RUNTIME_FILES = (
     "bin/proot-safe",
 )
 
-COMMAND_WRAPPER_FILES = (
-    "bin/cat",
-    "bin/ls",
-    "bin/clear",
-    "bin/grep",
-    "bin/sed",
-    "bin/awk",
-    "bin/head",
-    "bin/tail",
-    "bin/wc",
-    "bin/mkdir",
-    "bin/rm",
-    "bin/cp",
-    "bin/mv",
-    "bin/ln",
-    "bin/chmod",
-    "bin/pwd",
-    "bin/env",
-    "bin/which",
-    "bin/find",
-    "bin/tar",
-    "bin/gzip",
-    "bin/gunzip",
-    "bin/zcat",
-    "bin/stat",
-    "bin/strings",
-    "bin/file",
-    "bin/whoami",
+COMMAND_WRAPPER_APPLETS = (
+    "cat",
+    "ls",
+    "clear",
+    "grep",
+    "sed",
+    "awk",
+    "head",
+    "tail",
+    "wc",
+    "mkdir",
+    "rm",
+    "cp",
+    "mv",
+    "ln",
+    "chmod",
+    "pwd",
+    "env",
+    "which",
+    "find",
+    "tar",
+    "gzip",
+    "gunzip",
+    "zcat",
+    "stat",
+    "strings",
+    "file",
+    "whoami",
 )
 
 
@@ -118,9 +118,20 @@ def validate() -> list[str]:
         require(build_script, runtime_file, "bootstrap source generator", errors)
         require(builder, runtime_file, "bootstrap zip builder", errors)
 
-    for wrapper_file in COMMAND_WRAPPER_FILES:
-        require(build_script, wrapper_file, "explicit busybox command wrapper source", errors)
-        require(builder, wrapper_file, "explicit busybox command wrapper zip entry", errors)
+    for token in (
+        "runtime_command_wrappers",
+        "write_busybox_applet_wrapper",
+        "${generated_root}/bin/${app}",
+        "command_wrapper_names",
+        "wrapper_paths",
+        "bin/%s",
+        "load_file(payload_root,wrapper_paths[i],wrapper_bufs[i],&wrapper_sizes[i])",
+    ):
+        require(build_script + "\n" + builder, token, "explicit busybox command wrapper machinery", errors)
+
+    for applet in COMMAND_WRAPPER_APPLETS:
+        require(build_script, applet, "explicit busybox command wrapper source applet list", errors)
+        require(builder, f'"{applet}"', "explicit busybox command wrapper zip applet list", errors)
 
     for marker in (
         "BOOTSTRAP_UTILS_READY=1",
