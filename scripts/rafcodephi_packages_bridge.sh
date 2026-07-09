@@ -5,8 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PACKAGES_REPO_URL="${RAFCODEPHI_PACKAGES_REPO_URL:-https://github.com/exacordex-crypto/termux-packagesRafcodephi.git}"
 PACKAGES_DIR="${RAFCODEPHI_PACKAGES_DIR:-${ROOT_DIR}/out/termux-packagesRafcodephi}"
 OUT_DIR="${ROOT_DIR}/out/rafcodephi-packages-bridge"
-REQUIRED_PACKAGES=(apt bash busybox proot dpkg coreutils termux-tools)
-REQUIRED_ARCHES=(aarch64 arm i686 x86_64)
+REQUIRED_PACKAGES=(apt bash busybox proot dpkg ca-certificates coreutils termux-tools)
+REQUIRED_ARCHES=(aarch64 arm)
 
 info() { printf '[rafcodephi-packages-bridge] %s\n' "$*"; }
 fail() { printf '[rafcodephi-packages-bridge][ERROR] %s\n' "$*" >&2; exit 1; }

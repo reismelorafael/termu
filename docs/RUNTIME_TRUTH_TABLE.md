@@ -7,15 +7,15 @@
 | bootstrap instala | PARCIAL | `TermuxInstaller` com staging/rollback | teste real em device |
 | `sh` | PARCIAL | bootstrap/wrapper | validar no device |
 | `pkg` | TOKEN_VAZIO | script bridge bootstrap | backend real |
-| `apt` | TOKEN_VAZIO | script bridge bootstrap | backend real |
-| `apt-get` | TOKEN_VAZIO | script bridge bootstrap | backend real |
-| `dpkg` | TOKEN_VAZIO | requisito de payload core | binário real |
-| `libapt` | TOKEN_VAZIO | requisito de payload core | bibliotecas reais |
+| `apt` | TOKEN_VAZIO | gerador ARM real criado (`scripts/build_real_arm_bootstrap_core.py`), sem device `pkg update` ainda | backend real validado em device |
+| `apt-get` | TOKEN_VAZIO | gerador ARM real criado (`scripts/build_real_arm_bootstrap_core.py`), sem device `pkg update` ainda | backend real validado em device |
+| `dpkg` | TOKEN_VAZIO | gerador ARM real criado (`scripts/build_real_arm_bootstrap_core.py`), sem device package install ainda | binário real validado em device |
+| `libapt` | TOKEN_VAZIO | dependency closure for `apt` inclui bibliotecas libapt, sem dynamic-link em device ainda | teste dynamic-link em device |
 | `busybox` | PARCIAL | wrapper/delegação para toybox/toolbox quando possível | busybox real ou substituto consistente |
-| `proot` | TOKEN_VAZIO | bridge/wrapper | `proot.real` ou equivalente |
-| certificados | TOKEN_VAZIO | requisito de payload core | CA bundle real |
-| DNS/network básico | TOKEN_VAZIO | requisito de payload core | resolver funcional e teste rede |
-| repositório configurado | TOKEN_VAZIO | requisito de payload core | `sources.list`/config real |
+| `proot` | TOKEN_VAZIO | generator renames real Termux `proot` to `bin/proot.real` and emits `bin/proot` shim, sem device ainda | `proot --version` on device |
+| certificados | TOKEN_VAZIO | generator includes `ca-certificates` package, sem TLS em device ainda | TLS/package update on device |
+| DNS/network básico | TOKEN_VAZIO | generator writes guarded `etc/resolv.conf`, sem rede em device ainda | network test on device |
+| repositório configurado | TOKEN_VAZIO | generator writes `etc/apt/sources.list` for Termux main, sem `apt update` em device ainda | `apt update` on device |
 | `pkg update` | FUTURO | contrato definido | teste real bloqueante |
 | `pkg install` | FUTURO | contrato definido | instalar nano/python/git |
 | RAFAELIA JNI | PROVADO ESTRUTURAL | C/JNI | benchmark |

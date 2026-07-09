@@ -21,24 +21,28 @@ Gerado a partir de `docs/RUNTIME_TRUTH_TABLE.md`.
 ## TOKEN_VAZIO
 
 - **`pkg`** — estado: `TOKEN_VAZIO`; evidência: script bridge bootstrap; lacuna: backend real
-- **`apt`** — estado: `TOKEN_VAZIO`; evidência: script bridge bootstrap; lacuna: backend real
-- **`apt-get`** — estado: `TOKEN_VAZIO`; evidência: script bridge bootstrap; lacuna: backend real
-- **`dpkg`** — estado: `TOKEN_VAZIO`; evidência: requisito de payload core; lacuna: binário real
-- **`libapt`** — estado: `TOKEN_VAZIO`; evidência: requisito de payload core; lacuna: bibliotecas reais
-- **`proot`** — estado: `TOKEN_VAZIO`; evidência: bridge/wrapper; lacuna: `proot.real` ou equivalente
-- **certificados** — estado: `TOKEN_VAZIO`; evidência: requisito de payload core; lacuna: CA bundle real
-- **DNS/network básico** — estado: `TOKEN_VAZIO`; evidência: requisito de payload core; lacuna: resolver funcional e teste rede
-- **repositório configurado** — estado: `TOKEN_VAZIO`; evidência: requisito de payload core; lacuna: `sources.list`/config real
+- **`apt`** — estado: `TOKEN_VAZIO`; evidência: gerador ARM real criado (`scripts/build_real_arm_bootstrap_core.py`), sem device `pkg update` ainda; lacuna: backend real validado em device
+- **`apt-get`** — estado: `TOKEN_VAZIO`; evidência: gerador ARM real criado (`scripts/build_real_arm_bootstrap_core.py`), sem device `pkg update` ainda; lacuna: backend real validado em device
+- **`dpkg`** — estado: `TOKEN_VAZIO`; evidência: gerador ARM real criado (`scripts/build_real_arm_bootstrap_core.py`), sem device package install ainda; lacuna: binário real validado em device
+- **`libapt`** — estado: `TOKEN_VAZIO`; evidência: dependency closure for `apt` inclui bibliotecas libapt, sem dynamic-link em device ainda; lacuna: teste dynamic-link em device
+- **`proot`** — estado: `TOKEN_VAZIO`; evidência: generator renames real Termux `proot` to `bin/proot.real` and emits `bin/proot` shim, sem device ainda; lacuna: `proot --version` on device
+- **certificados** — estado: `TOKEN_VAZIO`; evidência: generator includes `ca-certificates` package, sem TLS em device ainda; lacuna: TLS/package update on device
+- **DNS/network básico** — estado: `TOKEN_VAZIO`; evidência: generator writes guarded `etc/resolv.conf`, sem rede em device ainda; lacuna: network test on device
+- **repositório configurado** — estado: `TOKEN_VAZIO`; evidência: generator writes `etc/apt/sources.list` for Termux main, sem `apt update` em device ainda; lacuna: `apt update` on device
 
 ## RISCO
 
 - **bootstrap instala** — risco operacional: teste real em device
 - **`sh`** — risco operacional: validar no device
 - **`pkg`** — risco operacional: backend real
-- **`apt`** — risco operacional: backend real
-- **`apt-get`** — risco operacional: backend real
-- **`proot`** — risco operacional: `proot.real` ou equivalente
-- **DNS/network básico** — risco operacional: resolver funcional e teste rede
+- **`apt`** — risco operacional: backend real validado em device
+- **`apt-get`** — risco operacional: backend real validado em device
+- **`dpkg`** — risco operacional: binário real validado em device
+- **`libapt`** — risco operacional: teste dynamic-link em device
+- **`proot`** — risco operacional: `proot --version` on device
+- **certificados** — risco operacional: TLS/package update on device
+- **DNS/network básico** — risco operacional: network test on device
+- **repositório configurado** — risco operacional: `apt update` on device
 - **device smoke** — risco operacional: `DEVICE_SMOKE_REQUIRED=true` em CI real
 
 ## PRÓXIMO PASSO
@@ -47,15 +51,15 @@ Gerado a partir de `docs/RUNTIME_TRUTH_TABLE.md`.
 - **bootstrap instala** — teste real em device
 - **`sh`** — validar no device
 - **`pkg`** — backend real
-- **`apt`** — backend real
-- **`apt-get`** — backend real
-- **`dpkg`** — binário real
-- **`libapt`** — bibliotecas reais
+- **`apt`** — backend real validado em device
+- **`apt-get`** — backend real validado em device
+- **`dpkg`** — binário real validado em device
+- **`libapt`** — teste dynamic-link em device
 - **`busybox`** — busybox real ou substituto consistente
-- **`proot`** — `proot.real` ou equivalente
-- **certificados** — CA bundle real
-- **DNS/network básico** — resolver funcional e teste rede
-- **repositório configurado** — `sources.list`/config real
+- **`proot`** — `proot --version` on device
+- **certificados** — TLS/package update on device
+- **DNS/network básico** — network test on device
+- **repositório configurado** — `apt update` on device
 - **`pkg update`** — teste real bloqueante
 - **`pkg install`** — instalar nano/python/git
 - **RAFAELIA JNI** — benchmark
