@@ -55,7 +55,7 @@ pkg help
 apt help
 ```
 
-Resultado mínimo esperado com o bootstrap bridge:
+Resultado mínimo esperado quando o APK ainda estiver em modo bridge:
 
 ```text
 DEVICE_MINIMAL_PKG_LAYER_VALIDATED
@@ -65,7 +65,22 @@ Esse estado prova apenas que `pkg help` não quebra por ausência de comandos b�
 
 ## Payload core ARM real
 
-Para gerar o core ARM real antes de promover `TOKEN_VAZIO` para `PROVADO`:
+O build padrão agora tenta gerar payload core real para ARM:
+
+```bash
+RAFCODEPHI_REAL_PKG_BOOTSTRAP=true bash scripts/build_rafaelia_bootstraps.sh
+```
+
+Esse caminho sobrescreve:
+
+```text
+app/src/main/cpp/rewritten-bootstrap-aarch64.zip
+app/src/main/cpp/rewritten-bootstrap-arm.zip
+```
+
+com payload real contendo `apt`, `apt-get`, `dpkg`, `pkg`, `bash`, `busybox`, `coreutils`, `ca-certificates`, `termux-tools`, DNS e `sources.list`. Os zips i686/x86_64 permanecem em modo bridge até haver payload real equivalente.
+
+Para rodar só o gerador real manualmente:
 
 ```bash
 ./scripts/build_real_arm_bootstrap_core.py --arch all
