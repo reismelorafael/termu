@@ -6,6 +6,10 @@ cd "$ROOT_DIR"
 
 : "${TERMUX_BOOTSTRAP_PACKAGE_NAME:=com.termux.rafacodephi}"
 : "${TERMUX_BOOTSTRAP_PAGE_SIZE:=16384}"
+: "${RAFCODEPHI_REAL_PKG_BOOTSTRAP:=true}"
+: "${RAFCODEPHI_REAL_PKG_ARCH:=all}"
+: "${RAFCODEPHI_REAL_PKG_VALIDATE:=true}"
+: "${RAFCODEPHI_REAL_PKG_REPO:=https://packages.termux.dev/apt/termux-main}"
 
 builder="${TMPDIR:-/tmp}/bootstrap_zip_builder.$$"
 generated_root="${ROOT_DIR}/build/generated/rafaelia-bootstrap/common"
@@ -246,4 +250,39 @@ cp app/src/main/cpp/bootstrap-arm.zip app/src/main/cpp/rewritten-bootstrap-arm.z
 cp app/src/main/cpp/bootstrap-i686.zip app/src/main/cpp/rewritten-bootstrap-i686.zip
 cp app/src/main/cpp/bootstrap-x86_64.zip app/src/main/cpp/rewritten-bootstrap-x86_64.zip
 
-echo "RAFCODEPHI bootstraps generated for package=${TERMUX_BOOTSTRAP_PACKAGE_NAME} page_size=${TERMUX_BOOTSTRAP_PAGE_SIZE} payload=${generated_root}"
+case "${RAFCODEPHI_REAL_PKG_BOOTSTRAP}" in
+    true|1|yes|on)
+        echo "RAFCODEPHI real pkg bootstrap requested: arch=${RAFCODEPHI_REAL_PKG_ARCH} repo=${RAFCODEPHI_REAL_PKG_REPO}"
+        python3 scripts/build_real_arm_bootstrap_core.py \
+            --arch "${RAFCODEPHI_REAL_PKG_ARCH}" \
+            --repo "${RAFCODEPHI_REAL_PKG_REPO}"
+        if [ "${RAFCODEPHI_REAL_PKG_VALIDATE}" = "true" ] || [ "${RAFCODEPHI_REAL_PKG_VALIDATE}" = "1" ] || [ "${RAFCODEPHI_REAL_PKG_VALIDATE}" = "yes" ]; then
+            validate_targets=()
+            case "${RAFCODEPHI_REAL_PKG_ARCH}" in
+                all)
+                    validate_targets+=(app/src/main/cpp/rewritten-bootstrap-aarch64.zip app/src/main/cpp/rewritten-bootstrap-arm.zip)
+                    ;;
+                aarch64)
+                    validate_targets+=(app/src/main/cpp/rewritten-bootstrap-aarch64.zip)
+                    ;;
+                arm)
+                    validate_targets+=(app/src/main/cpp/rewritten-bootstrap-arm.zip)
+                    ;;
+                *)
+                    echo "Invalid RAFCODEPHI_REAL_PKG_ARCH='${RAFCODEPHI_REAL_PKG_ARCH}'. Use all, aarch64, or arm." >&2
+                    exit 2
+                    ;;
+            esac
+            python3 scripts/validate_real_arm_bootstrap_core.py "${validate_targets[@]}"
+        fi
+        ;;
+    false|0|no|off)
+        echo "RAFCODEPHI real pkg bootstrap disabled; generated bridge-only ARM bootstraps. This is not a real pkg build."
+        ;;
+    *)
+        echo "Invalid RAFCODEPHI_REAL_PKG_BOOTSTRAP='${RAFCODEPHI_REAL_PKG_BOOTSTRAP}'. Use true/false." >&2
+        exit 2
+        ;;
+esac
+
+echo "RAFCODEPHI bootstraps generated for package=${TERMUX_BOOTSTRAP_PACKAGE_NAME} page_size=${TERMUX_BOOTSTRAP_PAGE_SIZE} payload=${generated_root} real_pkg=${RAFCODEPHI_REAL_PKG_BOOTSTRAP}"
