@@ -4,34 +4,34 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-COMMAND_WRAPPER_FILES = [
-    "bin/cat",
-    "bin/ls",
-    "bin/clear",
-    "bin/grep",
-    "bin/sed",
-    "bin/awk",
-    "bin/head",
-    "bin/tail",
-    "bin/wc",
-    "bin/mkdir",
-    "bin/rm",
-    "bin/cp",
-    "bin/mv",
-    "bin/ln",
-    "bin/chmod",
-    "bin/pwd",
-    "bin/env",
-    "bin/which",
-    "bin/find",
-    "bin/tar",
-    "bin/gzip",
-    "bin/gunzip",
-    "bin/zcat",
-    "bin/stat",
-    "bin/strings",
-    "bin/file",
-    "bin/whoami",
+COMMAND_WRAPPER_APPLETS = [
+    "cat",
+    "ls",
+    "clear",
+    "grep",
+    "sed",
+    "awk",
+    "head",
+    "tail",
+    "wc",
+    "mkdir",
+    "rm",
+    "cp",
+    "mv",
+    "ln",
+    "chmod",
+    "pwd",
+    "env",
+    "which",
+    "find",
+    "tar",
+    "gzip",
+    "gunzip",
+    "zcat",
+    "stat",
+    "strings",
+    "file",
+    "whoami",
 ]
 
 
@@ -95,11 +95,14 @@ def test_zip_builder_packages_runtime_utility_shims() -> None:
         "EXPLICIT_APPLET_WRAPPERS_READY=1",
         "SYMLINKS.txt",
         "raf-bootstrap-sh",
+        "command_wrapper_names",
+        "wrapper_paths",
+        "bin/%s",
     ]:
         assert token in builder
 
-    for wrapper_file in COMMAND_WRAPPER_FILES:
-        assert wrapper_file in builder
+    for applet in COMMAND_WRAPPER_APPLETS:
+        assert f'"{applet}"' in builder
 
 
 def test_bootstrap_source_generator_creates_files_that_zip_builder_requires() -> None:
@@ -116,6 +119,7 @@ def test_bootstrap_source_generator_creates_files_that_zip_builder_requires() ->
         "${generated_root}/bin/proot-safe",
         "write_busybox_applet_wrapper",
         "runtime_command_wrappers",
+        "${generated_root}/bin/${app}",
         "rewritten-bootstrap-aarch64.zip",
         "rewritten-bootstrap-arm.zip",
         "rewritten-bootstrap-i686.zip",
@@ -123,8 +127,8 @@ def test_bootstrap_source_generator_creates_files_that_zip_builder_requires() ->
     ]:
         assert token in build_script
 
-    for wrapper_file in COMMAND_WRAPPER_FILES:
-        assert wrapper_file.replace("bin/", "") in build_script
+    for applet in COMMAND_WRAPPER_APPLETS:
+        assert applet in build_script
 
 
 def test_installer_keeps_integrity_runtime_environment_and_rollback_guards() -> None:
@@ -148,6 +152,13 @@ def test_existing_bootstrap_environment_is_initialized_on_application_startup() 
     application = (ROOT / "app/src/main/java/com/termux/app/TermuxApplication.java").read_text(
         encoding="utf-8"
     )
+
+    for token in [
+        "initializeInstalledBootstrapEnvironment()",
+        "writeShellEnvironmentFile(\"application-startup\")",
+        "new File(TermuxConstants.TERMUX_PREFIX_DIR_PATH + \"/bin/sh\",)",
+    ]:
+        assert token not in application
 
     for token in [
         "initializeInstalledBootstrapEnvironment()",
