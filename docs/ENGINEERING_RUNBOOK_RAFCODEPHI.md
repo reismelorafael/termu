@@ -10,6 +10,7 @@ Ordem única de execução do ferreiro RAFCODEΦ:
 6. `./scripts/build_apk_matrix.sh`
 7. `./gradlew verifyReleaseContract`
 8. `./scripts/device_runtime_smoke.sh`
+9. `./scripts/device_pkg_smoke.sh`
 
 ## Floresta de hotfixes
 
@@ -35,6 +36,33 @@ DEVICE_SMOKE_REQUIRED=true ./scripts/device_runtime_smoke.sh path/to/app.apk
 
 O modo obrigatório falha quando `final_status != DEVICE_VALIDATED`.
 
+## Camada mínima de `pkg`
+
+Antes de afirmar que existe `pkg` operacional, valide a camada mínima no device:
+
+```bash
+./scripts/device_pkg_smoke.sh
+```
+
+Essa camada exige:
+
+```bash
+cat --help
+ls "$HOME"
+clear
+grep x /dev/null
+pkg help
+apt help
+```
+
+Resultado mínimo esperado com o bootstrap bridge:
+
+```text
+DEVICE_MINIMAL_PKG_LAYER_VALIDATED
+```
+
+Esse estado prova apenas que `pkg help` não quebra por ausência de comandos básicos. Ele **não** prova `pkg update` nem `pkg install`.
+
 ## Payload core ARM real
 
 Para gerar o core ARM real antes de promover `TOKEN_VAZIO` para `PROVADO`:
@@ -45,19 +73,32 @@ python3 scripts/validate_real_arm_bootstrap_core.py \
   app/src/main/cpp/rewritten-bootstrap-aarch64.zip \
   app/src/main/cpp/rewritten-bootstrap-arm.zip
 DEVICE_SMOKE_REQUIRED=true ./scripts/device_runtime_smoke.sh path/to/app.apk
+./scripts/device_pkg_smoke.sh
 ```
 
 A validação do ZIP é obrigatória antes do device smoke. Falha `LEGACY_PREFIX_BINARY_RISK` bloqueia promoção: ela significa prefix legado dentro de arquivo binário/non-UTF-8, sem replace automático seguro; o pacote afetado deve ser reconstruído com prefix RAFCODEΦ ou coberto por estratégia de compatibilidade segura.
 
-Promoção permitida somente depois de passar, em dispositivo real:
+Promoção de `pkg` real permitida somente depois de passar, em dispositivo real:
 
-1. `pkg update`
-2. `pkg install nano`
+```bash
+REQUIRE_REAL_PKG=true ./scripts/device_pkg_smoke.sh
+```
+
+Esse gate executa:
+
+1. `pkg update -y`
+2. `pkg install -y nano`
 3. `nano --version`
-4. `pkg install python`
+4. `pkg install -y python`
 5. `python --version`
-6. `pkg install git`
+6. `pkg install -y git`
 7. `git --version`
+
+O estado só pode mudar para `PROVADO` quando o relatório `reports/device_pkg_smoke.json` declarar:
+
+```text
+DEVICE_REAL_PKG_VALIDATED
+```
 
 ## Processo/zumbi e hot path RAFAELIA
 
