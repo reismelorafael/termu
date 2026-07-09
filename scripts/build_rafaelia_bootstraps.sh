@@ -16,7 +16,7 @@ mkdir -p "${generated_root}/bin" "${generated_root}/etc" app/src/main/cpp
 
 cat > "${generated_root}/bin/sh" <<'EOS'
 #!/system/bin/sh
-PREFIX="${PREFIX:-/data/data/com.termux.rafacodephi/files/usr}"
+PREFIX="${PREFIX:-@RAFCODEPHI_PREFIX@}"
 if [ -x "${PREFIX}/bin/bash" ]; then
     exec "${PREFIX}/bin/bash" "$@"
 fi
@@ -29,7 +29,7 @@ EOS
 
 cat > "${generated_root}/bin/pkg" <<'EOS'
 #!/system/bin/sh
-PREFIX="${PREFIX:-/data/data/com.termux.rafacodephi/files/usr}"
+PREFIX="${PREFIX:-@RAFCODEPHI_PREFIX@}"
 cmd="${1:-help}"
 is_raf_wrapper() { [ -f "$1" ] && grep -q 'RAFCODEPHI .*wrapper' "$1" 2>/dev/null; }
 
@@ -71,7 +71,7 @@ EOS
 
 cat > "${generated_root}/bin/apt" <<'EOS'
 #!/system/bin/sh
-PREFIX="${PREFIX:-/data/data/com.termux.rafacodephi/files/usr}"
+PREFIX="${PREFIX:-@RAFCODEPHI_PREFIX@}"
 if [ -x "${PREFIX}/bin/apt.real" ]; then
     exec "${PREFIX}/bin/apt.real" "$@"
 fi
@@ -92,7 +92,7 @@ EOS
 
 cat > "${generated_root}/bin/apt-get" <<'EOS'
 #!/system/bin/sh
-PREFIX="${PREFIX:-/data/data/com.termux.rafacodephi/files/usr}"
+PREFIX="${PREFIX:-@RAFCODEPHI_PREFIX@}"
 if [ -x "${PREFIX}/bin/apt-get.real" ]; then
     exec "${PREFIX}/bin/apt-get.real" "$@"
 fi
@@ -142,7 +142,7 @@ EOS
 
 cat > "${generated_root}/bin/proot" <<'EOS'
 #!/system/bin/sh
-PREFIX="${PREFIX:-/data/data/com.termux.rafacodephi/files/usr}"
+PREFIX="${PREFIX:-@RAFCODEPHI_PREFIX@}"
 for candidate in "${PREFIX}/bin/proot.real" "${PREFIX}/libexec/proot"; do
     if [ -x "$candidate" ]; then
         exec "$candidate" "$@"
@@ -155,6 +155,10 @@ fi
 echo 'real proot native binary is not installed yet' >&2
 exit 127
 EOS
+
+for wrapper in sh pkg apt apt-get proot; do
+    sed -i "s#@RAFCODEPHI_PREFIX@#${prefix}#g" "${generated_root}/bin/${wrapper}"
+done
 
 cat > "${generated_root}/bin/apkmanager" <<EOS
 #!${prefix}/bin/sh

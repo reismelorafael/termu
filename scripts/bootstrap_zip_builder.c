@@ -19,18 +19,7 @@ typedef struct{const char*name;const uint8_t*data;uint32_t size;uint32_t crc;uin
 static uint8_t sh_buf[4096], pkg_buf[4096], motd_buf[4096], build_only_buf[256], busybox_buf[4096], proot_buf[4096];
 static uint8_t apt_buf[4096], apt_get_buf[4096], apkmanager_buf[4096], shellbash_buf[4096], busybox_safe_buf[4096], proot_safe_buf[4096];
 static const uint8_t symlinks_buf[] = "sh\342\206\220bin/raf-bootstrap-sh\n";
-static const uint8_t compat_buf[] =
-"#!/system/bin/sh\n"
-"PREFIX=${PREFIX:-/data/data/com.termux.rafacodephi/files/usr}\n"
-"status=0\n"
-"check(){ if [ ! -e \"$1\" ]; then echo missing:$1 >&2; status=1; elif [ ! -x \"$1\" ]; then chmod 700 \"$1\" 2>/dev/null || status=1; fi; }\n"
-"check \"$PREFIX/bin/sh\"\n"
-"check \"$PREFIX/bin/pkg\"\n"
-"[ -d \"$PREFIX/bin\" ] && find \"$PREFIX/bin\" -maxdepth 1 -type f -exec chmod 700 {} \\; 2>/dev/null || true\n"
-"[ -d \"$PREFIX/libexec\" ] && find \"$PREFIX/libexec\" -type f -exec chmod 700 {} \\; 2>/dev/null || true\n"
-"[ -d \"$PREFIX/lib/apt/methods\" ] && find \"$PREFIX/lib/apt/methods\" -type f -exec chmod 700 {} \\; 2>/dev/null || true\n"
-"[ -x \"$PREFIX/bin/sh\" ] && \"$PREFIX/bin/sh\" -c 'echo shell_exec_ok=1'\n"
-"exit $status\n";
+static char compat_buf[1024];
 
 static int valid_zip_path(const char* p){
   if(!p||!p[0]||p[0]=='/') return 0;
@@ -55,6 +44,7 @@ int main(int argc,char**argv){
   if(argc!=3) return 2;
   const char* out=argv[1]; const char* abi=argv[2];
   static char info[768];
+  static char default_prefix[256];
   const char* bootstrap_pkg=getenv("TERMUX_BOOTSTRAP_PACKAGE_NAME");
   const char* page_size=getenv("TERMUX_BOOTSTRAP_PAGE_SIZE");
   const char* payload_root=getenv("RAF_BOOTSTRAP_SRC_DIR");
@@ -62,6 +52,19 @@ int main(int argc,char**argv){
   if(!bootstrap_pkg||!bootstrap_pkg[0]) bootstrap_pkg="com.termux.rafacodephi";
   if(!page_size||!page_size[0]) page_size="16384";
   if(!payload_root||!payload_root[0]) payload_root="bootstrap_src/common";
+  if(snprintf(default_prefix,sizeof(default_prefix),"/data/data/%s/files/usr",bootstrap_pkg)<=0) return 22;
+  if(snprintf(compat_buf,sizeof(compat_buf),
+    "#!/system/bin/sh\n"
+    "PREFIX=${PREFIX:-%s}\n"
+    "status=0\n"
+    "check(){ if [ ! -e \"$1\" ]; then echo missing:$1 >&2; status=1; elif [ ! -x \"$1\" ]; then chmod 700 \"$1\" 2>/dev/null || status=1; fi; }\n"
+    "check \"$PREFIX/bin/sh\"\n"
+    "check \"$PREFIX/bin/pkg\"\n"
+    "[ -d \"$PREFIX/bin\" ] && find \"$PREFIX/bin\" -maxdepth 1 -type f -exec chmod 700 {} \\; 2>/dev/null || true\n"
+    "[ -d \"$PREFIX/libexec\" ] && find \"$PREFIX/libexec\" -type f -exec chmod 700 {} \\; 2>/dev/null || true\n"
+    "[ -d \"$PREFIX/lib/apt/methods\" ] && find \"$PREFIX/lib/apt/methods\" -type f -exec chmod 700 {} \\; 2>/dev/null || true\n"
+    "[ -x \"$PREFIX/bin/sh\" ] && \"$PREFIX/bin/sh\" -c 'echo shell_exec_ok=1'\n"
+    "exit $status\n", default_prefix)<=0) return 23;
   if(strcmp(abi,"arm")==0) min_api="28";
   int info_n=snprintf(info,sizeof(info),
     "TERMUX_PACKAGE_NAME=%s\nTERMUX_ARCH=%s\nTERMUX_PAGE_SIZE=%s\nTERMUX_MIN_API=%s\nRAFCODEPHI_BOOTSTRAP=local-ci\nBOOTSTRAP_UTILS_READY=1\nBOOTSTRAP_APKMANAGER_READY=1\nBOOTSTRAP_SHELLBASH_READY=1\nBOOTSTRAP_BUSYBOX_SAFE_READY=1\nBOOTSTRAP_PROOT_SAFE_READY=1\nBOOTSTRAP_COMPAT_HOTFIX_READY=1\nBOOTSTRAP_FULLENGINE_READY=1\nBOOTSTRAP_PATHS_VALIDATED=1\nBOOTSTRAP_PERMISSIONS_DECLARED=1\nBOOTSTRAP_COMMAND_WRAPPERS_READY=1\nBOOTSTRAP_BUSYBOX_PRESENT=1\nBOOTSTRAP_PROOT_PRESENT=1\n",
@@ -88,7 +91,7 @@ int main(int argc,char**argv){
     {"bin/sh",sh_buf,sh_n,0,0,0700},{"bin/pkg",pkg_buf,pkg_n,0,0,0700},{"bin/busybox",busybox_buf,busybox_n,0,0,0700},{"bin/proot",proot_buf,proot_n,0,0,0700},
     {"bin/apt",apt_buf,apt_n,0,0,0700},{"bin/apt-get",apt_get_buf,apt_get_n,0,0,0700},{"bin/apkmanager",apkmanager_buf,apkmanager_n,0,0,0700},
     {"bin/shellbash",shellbash_buf,shellbash_n,0,0,0700},{"bin/busybox-safe",busybox_safe_buf,busybox_safe_n,0,0,0700},{"bin/proot-safe",proot_safe_buf,proot_safe_n,0,0,0700},
-    {"bin/rafcodephi-compat-hotfix",compat_buf,(uint32_t)(sizeof(compat_buf)-1),0,0,0700},{"etc/motd",motd_buf,motd_n,0,0,0600}
+    {"bin/rafcodephi-compat-hotfix",(uint8_t*)compat_buf,(uint32_t)strlen(compat_buf),0,0,0700},{"etc/motd",motd_buf,motd_n,0,0,0600}
   };
   const int n_entries=(int)(sizeof(e)/sizeof(e[0]));
 

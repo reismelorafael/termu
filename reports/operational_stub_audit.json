@@ -107,7 +107,7 @@
     },
     {
       "component": "termux_prefix_side_by_side",
-      "evidence": "contains token: /data/data/com.termux.rafacodephi/files/usr",
+      "evidence": "contains token: prefix=\"/data/data/${TERMUX_BOOTSTRAP_PACKAGE_NAME}/files/usr\"",
       "mitigation": "keep covered by audit and runtime smoke",
       "path": "scripts/build_rafaelia_bootstraps.sh",
       "status": "PASS"
@@ -142,7 +142,7 @@
     }
   ],
   "falsification": "Audit is stale if new source files are added beyond the bounded scan or runtime tests contradict structural markers.",
-  "hit_count": 10262,
+  "hit_count": 10265,
   "hits_sample": [
     {
       "category": "missing_or_absence",

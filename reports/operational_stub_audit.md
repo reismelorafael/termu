@@ -1,15 +1,15 @@
 # Operational Stub Audit
 
 - scan_depth: 5
-- hit_count: 10262
+- hit_count: 10265
 - scope: structural repository scan only; no runtime proof claimed
 - falsification: audit is stale if new source files are added beyond the bounded scan or runtime tests contradict structural markers
 
 ## Category counts
 
-- failsafe_failover_rollback: 9175
+- failsafe_failover_rollback: 9176
 - heap_forbidden_hotpath: 580
-- missing_or_absence: 256
+- missing_or_absence: 258
 - stub_or_placeholder: 107
 - vectra_risk_marker: 144
 
@@ -32,7 +32,7 @@
 | termux_install_apt | PASS | `scripts/build_rafaelia_bootstraps.sh` | contains token: bin/apt | keep covered by audit and runtime smoke |
 | termux_install_busybox | PASS | `scripts/build_rafaelia_bootstraps.sh` | contains token: bin/busybox | keep covered by audit and runtime smoke |
 | termux_install_proot | PASS | `scripts/build_rafaelia_bootstraps.sh` | contains token: bin/proot | keep covered by audit and runtime smoke |
-| termux_prefix_side_by_side | PASS | `scripts/build_rafaelia_bootstraps.sh` | contains token: /data/data/com.termux.rafacodephi/files/usr | keep covered by audit and runtime smoke |
+| termux_prefix_side_by_side | PASS | `scripts/build_rafaelia_bootstraps.sh` | contains token: prefix="/data/data/${TERMUX_BOOTSTRAP_PACKAGE_NAME}/files/usr" | keep covered by audit and runtime smoke |
 | generated_bootstrap_zip | PASS | `app/src/main/cpp/rewritten-bootstrap-aarch64.zip` | generated artifact exists | keep generated artifact fresh |
 | generated_bootstrap_zip | PASS | `app/src/main/cpp/rewritten-bootstrap-arm.zip` | generated artifact exists | keep generated artifact fresh |
 | generated_bootstrap_zip | PASS | `app/src/main/cpp/rewritten-bootstrap-i686.zip` | generated artifact exists | keep generated artifact fresh |
@@ -87,7 +87,7 @@
 | `docs/06_PLANO_ACAO_EXECUCAO.md` | 11 |
 | `rafaelia/old/bootstrap.sh` | 11 |
 
-## Hit sample (first 500 of 10262)
+## Hit sample (first 500 of 10265)
 
 | Path | Line | Category | Excerpt |
 |---|---:|---|---|
