@@ -8,12 +8,13 @@
 | `sh` | PARCIAL | bootstrap/wrapper | validar no device |
 | wrappers `cat/ls/clear/grep` | PROVADO ESTRUTURAL | `scripts/build_rafaelia_bootstraps.sh`, `scripts/bootstrap_zip_builder.c`, `tests/test_bootstrap_busybox_applet_wrappers.py`, inspeção zip no CI | smoke em device com APK novo |
 | `pkg help` | PROVADO ESTRUTURAL | wrappers explícitos + `scripts/device_pkg_smoke.sh` camada mínima | smoke em device com APK novo |
-| `pkg` real | TOKEN_VAZIO | `scripts/build_real_arm_bootstrap_core.py` monta payload com `apt`, `dpkg`, `termux-tools`; `scripts/device_pkg_smoke.sh` define gate | `DEVICE_REAL_PKG_VALIDATED` |
-| `apt` | TOKEN_VAZIO | gerador ARM real criado (`scripts/build_real_arm_bootstrap_core.py`) e validador exige ausência de `LEGACY_PREFIX_BINARY_RISK`, sem device `pkg update` ainda | backend real validado em device |
-| `apt-get` | TOKEN_VAZIO | gerador ARM real criado (`scripts/build_real_arm_bootstrap_core.py`) e auditoria binária conservadora, sem device `pkg update` ainda | backend real validado em device |
-| `dpkg` | TOKEN_VAZIO | gerador ARM real criado (`scripts/build_real_arm_bootstrap_core.py`), sem device package install e sem promoção se houver `LEGACY_PREFIX_BINARY_RISK` | binário real validado em device |
+| payload ARM real | PARCIAL | `scripts/build_rafaelia_bootstraps.sh` agora chama `scripts/build_real_arm_bootstrap_core.py` por padrão para aarch64/arm | validação CI + device smoke |
+| `pkg` real | TOKEN_VAZIO | `scripts/build_real_arm_bootstrap_core.py` monta payload com `apt`, `dpkg`, `coreutils`, `termux-tools`; `scripts/device_pkg_smoke.sh` define gate | `DEVICE_REAL_PKG_VALIDATED` |
+| `apt` | TOKEN_VAZIO | gerador ARM real criado e ligado ao build padrão; validador exige ausência de `LEGACY_PREFIX_BINARY_RISK`, sem device `pkg update` ainda | backend real validado em device |
+| `apt-get` | TOKEN_VAZIO | gerador ARM real criado e ligado ao build padrão; auditoria binária conservadora, sem device `pkg update` ainda | backend real validado em device |
+| `dpkg` | TOKEN_VAZIO | gerador ARM real criado e ligado ao build padrão, sem device package install e sem promoção se houver `LEGACY_PREFIX_BINARY_RISK` | binário real validado em device |
 | `libapt` | TOKEN_VAZIO | dependency closure for `apt` inclui bibliotecas libapt; payload precisa validação em device e auditoria binária limpa | teste dynamic-link em device |
-| `busybox` | PARCIAL | bridge/delegação exige applet explícito; wrappers mínimos agora são gerados e empacotados | busybox real ou substituto consistente |
+| `busybox` | PARCIAL | bridge/delegação exige applet explícito; real ARM core inclui `busybox` e fallback de comandos mínimos | busybox real validado em device |
 | `proot` | TOKEN_VAZIO | generator renames real Termux `proot` to `bin/proot.real` and emits `bin/proot` shim, sem device ainda | `proot --version` on device |
 | certificados | TOKEN_VAZIO | generator includes `ca-certificates` package, sem TLS em device ainda | TLS/package update on device |
 | DNS/network básico | TOKEN_VAZIO | generator writes guarded `etc/resolv.conf`, sem rede em device ainda | network test on device |
@@ -29,4 +30,4 @@
 
 ## Frase canônica do bootstrap
 
-O bootstrap atual fornece uma base mínima guardada para instalação e diagnóstico; wrappers explícitos resolvem a camada `busybox <applet>` e `pkg help`, mas `pkg update/install` só vira PROVADO com payload core real e relatório `DEVICE_REAL_PKG_VALIDATED` gerado em device.
+O bootstrap ARM agora tenta gerar payload real por padrão (`apt`/`dpkg`/`pkg`/`coreutils`/`termux-tools`) e falha se a validação estrutural reprovar; `pkg update/install` só vira PROVADO com relatório `DEVICE_REAL_PKG_VALIDATED` gerado em device.
