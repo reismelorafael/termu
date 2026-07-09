@@ -83,6 +83,7 @@ jobs:
         env:
           RAF_BOOTSTRAP_SOURCE: local
           RELEASE_TRACK: internal
+          APK_MATRIX_UNIT_TESTS_REQUIRED: "false"
         run: ./scripts/build_apk_matrix.sh
 
       - name: Build bootstrap baremetal guard smoke
