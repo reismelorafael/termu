@@ -13,6 +13,8 @@ on:
       - app/src/main/java/com/termux/app/TermuxApplication.java
       - scripts/build_rafaelia_bootstraps.sh
       - scripts/bootstrap_zip_builder.c
+      - scripts/build_real_arm_bootstrap_core.py
+      - scripts/validate_real_arm_bootstrap_core.py
       - scripts/smoke_bootstrap_filesystem_proot_busybox_service.sh
       - scripts/device_pkg_smoke.sh
       - docs/ENGINEERING_RUNBOOK_RAFCODEPHI.md
@@ -21,10 +23,12 @@ on:
       - docs/audits/EXISTING_BOOTSTRAP_ENVIRONMENT_INIT_HOTFIX.md
       - docs/audits/DEVICE_BOOTSTRAP_COMMAND_WRAPPERS_AUDIT.md
       - docs/audits/REAL_PKG_PROMOTION_CONTRACT.md
+      - tools/inspect_bootstrap_zips.py
       - tools/validate_bootstrap_package_install_contract.py
       - tools/validate_readme_runtime_claim_boundary.py
       - tests/test_bootstrap_package_install_contract.py
       - tests/test_device_pkg_smoke_contract.py
+      - tests/test_real_arm_bootstrap_core.py
       - tests/test_real_pkg_promotion_contract.py
       - tests/test_readme_runtime_claim_boundary.py
       - tests/test_android_exec_runtime_contract.py
@@ -41,6 +45,8 @@ on:
       - app/src/main/java/com/termux/app/TermuxApplication.java
       - scripts/build_rafaelia_bootstraps.sh
       - scripts/bootstrap_zip_builder.c
+      - scripts/build_real_arm_bootstrap_core.py
+      - scripts/validate_real_arm_bootstrap_core.py
       - scripts/smoke_bootstrap_filesystem_proot_busybox_service.sh
       - scripts/device_pkg_smoke.sh
       - docs/ENGINEERING_RUNBOOK_RAFCODEPHI.md
@@ -49,10 +55,12 @@ on:
       - docs/audits/EXISTING_BOOTSTRAP_ENVIRONMENT_INIT_HOTFIX.md
       - docs/audits/DEVICE_BOOTSTRAP_COMMAND_WRAPPERS_AUDIT.md
       - docs/audits/REAL_PKG_PROMOTION_CONTRACT.md
+      - tools/inspect_bootstrap_zips.py
       - tools/validate_bootstrap_package_install_contract.py
       - tools/validate_readme_runtime_claim_boundary.py
       - tests/test_bootstrap_package_install_contract.py
       - tests/test_device_pkg_smoke_contract.py
+      - tests/test_real_arm_bootstrap_core.py
       - tests/test_real_pkg_promotion_contract.py
       - tests/test_readme_runtime_claim_boundary.py
       - tests/test_android_exec_runtime_contract.py
@@ -72,7 +80,7 @@ concurrency:
 jobs:
   bootstrap-package-install-contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -85,6 +93,9 @@ jobs:
 
       - name: Run busybox applet wrapper tests
         run: python3 -m pytest -q tests/test_bootstrap_busybox_applet_wrappers.py
+
+      - name: Run real ARM pkg core tests
+        run: python3 -m pytest -q tests/test_real_arm_bootstrap_core.py
 
       - name: Run device pkg smoke contract tests
         run: python3 -m pytest -q tests/test_device_pkg_smoke_contract.py
@@ -111,92 +122,4 @@ jobs:
         run: bash scripts/build_rafaelia_bootstraps.sh
 
       - name: Inspect generated installable bootstrap packages
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import stat
-          import zipfile
-
-          root = Path('app/src/main/cpp')
-          required_zips = [
-              'rewritten-bootstrap-aarch64.zip',
-              'rewritten-bootstrap-arm.zip',
-              'rewritten-bootstrap-i686.zip',
-              'rewritten-bootstrap_x86_64.zip'.replace('_x86', '-x86'),
-          ]
-          command_wrappers = {
-              'bin/cat', 'bin/ls', 'bin/clear', 'bin/head', 'bin/tail',
-              'bin/grep', 'bin/sed', 'bin/awk', 'bin/cut', 'bin/tr', 'bin/wc',
-              'bin/sort', 'bin/uniq', 'bin/xargs', 'bin/tee', 'bin/mkdir',
-              'bin/rmdir', 'bin/rm', 'bin/cp', 'bin/mv', 'bin/ln', 'bin/chmod',
-              'bin/chown', 'bin/chgrp', 'bin/uname', 'bin/id', 'bin/pwd',
-              'bin/env', 'bin/dirname', 'bin/basename', 'bin/touch', 'bin/test',
-              'bin/printf', 'bin/echo', 'bin/sleep', 'bin/date', 'bin/dd',
-              'bin/du', 'bin/df', 'bin/ps', 'bin/kill', 'bin/which', 'bin/find',
-              'bin/readlink', 'bin/realpath', 'bin/expr', 'bin/yes', 'bin/false',
-              'bin/true', 'bin/seq', 'bin/tar', 'bin/gzip', 'bin/gunzip',
-              'bin/zcat', 'bin/stat', 'bin/strings', 'bin/file', 'bin/whoami',
-              'bin/hostname', 'bin/printenv',
-          }
-          required_entries = {
-              'BOOTSTRAP_INFO',
-              'SYMLINKS.txt',
-              'BUILD_ONLY',
-              'bin/sh',
-              'bin/pkg',
-              'bin/apt',
-              'bin/apt-get',
-              'bin/busybox',
-              'bin/proot',
-              'bin/apkmanager',
-              'bin/shellbash',
-              'bin/busybox-safe',
-              'bin/proot-safe',
-              'bin/rafcodephi-compat-hotfix',
-              'etc/motd',
-          } | command_wrappers
-          executable_entries = {name for name in required_entries if name.startswith('bin/')}
-          required_info_tokens = [
-              'BOOTSTRAP_UTILS_READY=1',
-              'BOOTSTRAP_APKMANAGER_READY=1',
-              'BOOTSTRAP_SHELLBASH_READY=1',
-              'BOOTSTRAP_BUSYBOX_SAFE_READY=1',
-              'BOOTSTRAP_PROOT_SAFE_READY=1',
-              'BOOTSTRAP_COMPAT_HOTFIX_READY=1',
-              'BOOTSTRAP_FULLENGINE_READY=1',
-              'BOOTSTRAP_PATHS_VALIDATED=1',
-              'BOOTSTRAP_PERMISSIONS_DECLARED=1',
-              'BOOTSTRAP_COMMAND_WRAPPERS_READY=1',
-              'BOOTSTRAP_EXPLICIT_APPLET_WRAPPERS=1',
-          ]
-          for zip_name in required_zips:
-              path = root / zip_name
-              if not path.is_file():
-                  raise SystemExit(f'missing generated bootstrap package: {path}')
-              with zipfile.ZipFile(path) as zf:
-                  names = set(zf.namelist())
-                  missing = sorted(required_entries - names)
-                  if missing:
-                      raise SystemExit(f'{zip_name}: missing entries: {missing}')
-                  for entry in names:
-                      if entry.startswith('/') or '..' in entry.split('/'):
-                          raise SystemExit(f'{zip_name}: unsafe entry path: {entry}')
-                  for entry in executable_entries:
-                      mode = (zf.getinfo(entry).external_attr >> 16) & 0o7777
-                      if not (mode & stat.S_IXUSR):
-                          raise SystemExit(f'{zip_name}: missing owner execute bit on {entry}: mode={mode:o}')
-                  info = zf.read('BOOTSTRAP_INFO').decode('utf-8')
-                  build_only = zf.read('BUILD_ONLY').decode('utf-8')
-                  symlinks = zf.read('SYMLINKS.txt').decode('utf-8')
-                  for token in required_info_tokens:
-                      if token not in info:
-                          raise SystemExit(f'{zip_name}: missing metadata token {token}')
-                  if 'RUNTIME_READY=1' not in build_only or 'FULLENGINE_READY=1' not in build_only:
-                      raise SystemExit(f'{zip_name}: runtime/fullengine marker missing')
-                  if 'COMMAND_WRAPPERS_READY=1' not in build_only:
-                      raise SystemExit(f'{zip_name}: command wrappers marker missing')
-                  if 'EXPLICIT_APPLET_WRAPPERS_READY=1' not in build_only:
-                      raise SystemExit(f'{zip_name}: explicit applet wrappers marker missing')
-                  if not symlinks.strip():
-                      raise SystemExit(f'{zip_name}: SYMLINKS.txt is empty')
-          PY
+        run: python3 tools/inspect_bootstrap_zips.py

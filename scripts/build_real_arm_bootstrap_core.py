@@ -3,13 +3,14 @@
 
 The script downloads Termux .deb packages for aarch64 and arm, verifies SHA-256,
 extracts the dependency closure into a package-specific PREFIX, rewrites legacy
-com.termux paths, emits sources.list/resolv.conf/cert locations, converts
-symlinks into TermuxInstaller's SYMLINKS.txt contract, and writes bootstrap zip
-payloads suitable for app/src/main/cpp/rewritten-bootstrap-{aarch64,arm}.zip.
+com.termux paths in text files, emits sources.list/resolv.conf/cert locations,
+converts symlinks into TermuxInstaller's SYMLINKS.txt contract, and writes
+bootstrap zip payloads suitable for app/src/main/cpp/rewritten-bootstrap-{aarch64,arm}.zip.
 
-It intentionally does not claim DEVICE_VALIDATED: generated payloads still need
-real-device `pkg update` and `pkg install nano python git` smoke before docs can
-move TOKEN_VAZIO entries to PROVADO.
+This is the concrete pkg path, not the pkg-help bridge. It still does not claim
+DEVICE_VALIDATED: generated payloads need real-device `pkg update` and
+`pkg install nano python git` smoke before docs can move TOKEN_VAZIO entries to
+PROVADO.
 """
 from __future__ import annotations
 
@@ -20,7 +21,6 @@ import re
 import shutil
 import subprocess
 import sys
-import tarfile
 import tempfile
 import urllib.request
 import zipfile
@@ -36,12 +36,79 @@ CORE_PACKAGES = (
     "bash",
     "busybox",
     "ca-certificates",
+    "coreutils",
     "dpkg",
+    "findutils",
+    "gawk",
+    "grep",
+    "gzip",
+    "ncurses-utils",
     "proot",
+    "sed",
+    "tar",
     "termux-tools",
 )
 SMOKE_PACKAGES = ("nano", "python", "git")
 ARCHES = ("aarch64", "arm")
+MINIMUM_COMMANDS = (
+    "cat",
+    "ls",
+    "clear",
+    "head",
+    "tail",
+    "grep",
+    "sed",
+    "awk",
+    "cut",
+    "tr",
+    "wc",
+    "sort",
+    "uniq",
+    "xargs",
+    "tee",
+    "mkdir",
+    "rmdir",
+    "rm",
+    "cp",
+    "mv",
+    "ln",
+    "chmod",
+    "uname",
+    "id",
+    "pwd",
+    "env",
+    "dirname",
+    "basename",
+    "touch",
+    "printf",
+    "echo",
+    "sleep",
+    "date",
+    "dd",
+    "du",
+    "df",
+    "ps",
+    "kill",
+    "which",
+    "find",
+    "readlink",
+    "realpath",
+    "expr",
+    "yes",
+    "false",
+    "true",
+    "seq",
+    "tar",
+    "gzip",
+    "gunzip",
+    "zcat",
+    "stat",
+    "strings",
+    "file",
+    "whoami",
+    "hostname",
+    "printenv",
+)
 
 
 @dataclass(frozen=True)
@@ -159,7 +226,41 @@ def rewrite_text_file(path: Path, legacy: str, current: str) -> None:
     except UnicodeDecodeError:
         return
     if legacy in text or "com.termux" in text:
-        path.write_text(text.replace(legacy, current).replace("/data/data/com.termux/", f"/data/data/{PACKAGE_NAME}/"), encoding="utf-8")
+        path.write_text(
+            text.replace(legacy, current).replace("/data/data/com.termux/", f"/data/data/{PACKAGE_NAME}/"),
+            encoding="utf-8",
+        )
+
+
+def write_command_wrapper(path: Path, applet: str, current_prefix: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        f"#!/system/bin/sh\n"
+        f"# RAFCODEPHI real-core fallback wrapper: {applet}\n"
+        f"PREFIX=\"${{PREFIX:-{current_prefix}}}\"\n"
+        f"if [ -x \"$PREFIX/bin/busybox\" ]; then\n"
+        f"    exec \"$PREFIX/bin/busybox\" \"{applet}\" \"$@\"\n"
+        f"fi\n"
+        f"if [ -x /system/bin/toybox ]; then\n"
+        f"    exec /system/bin/toybox \"{applet}\" \"$@\"\n"
+        f"fi\n"
+        f"if [ -x /system/bin/toolbox ]; then\n"
+        f"    exec /system/bin/toolbox \"{applet}\" \"$@\"\n"
+        f"fi\n"
+        f"echo 'RAFCODEPHI real-core: missing command backend: {applet}' >&2\n"
+        f"exit 127\n",
+        encoding="utf-8",
+    )
+    path.chmod(0o700)
+
+
+def ensure_minimum_commands(prefix: Path, current_prefix: str) -> None:
+    bin_dir = prefix / "bin"
+    for applet in MINIMUM_COMMANDS:
+        command_path = bin_dir / applet
+        if command_path.exists() or command_path.is_symlink():
+            continue
+        write_command_wrapper(command_path, applet, current_prefix)
 
 
 def prepare_prefix(extract_root: Path, prefix: Path, arch: str, repo: str) -> None:
@@ -176,7 +277,10 @@ def prepare_prefix(extract_root: Path, prefix: Path, arch: str, repo: str) -> No
     apt_dir = prefix / "etc" / "apt"
     apt_dir.mkdir(parents=True, exist_ok=True)
     (apt_dir / "sources.list").write_text(f"deb {repo.rstrip('/')} stable main\n", encoding="utf-8")
-    (prefix / "etc" / "resolv.conf").write_text("nameserver 1.1.1.1\nnameserver 8.8.8.8\noptions timeout:2 attempts:2\n", encoding="utf-8")
+    (prefix / "etc" / "resolv.conf").write_text(
+        "nameserver 1.1.1.1\nnameserver 8.8.8.8\noptions timeout:2 attempts:2\n",
+        encoding="utf-8",
+    )
     (prefix / "etc" / "rafcodephi-core.env").write_text(
         f"RAFCODEPHI_CORE_READY=1\nTERMUX_ARCH={arch}\nTERMUX_PACKAGE_NAME={PACKAGE_NAME}\nTERMUX_PREFIX={current_prefix}\n",
         encoding="utf-8",
@@ -187,6 +291,7 @@ def prepare_prefix(extract_root: Path, prefix: Path, arch: str, repo: str) -> No
         proot.rename(proot_real)
         proot.write_text(f"#!{current_prefix}/bin/sh\nexec {current_prefix}/bin/proot.real \"$@\"\n", encoding="utf-8")
         proot.chmod(0o700)
+    ensure_minimum_commands(prefix, current_prefix)
 
 
 def zip_prefix(prefix: Path, out_zip: Path, arch: str) -> None:
@@ -195,7 +300,8 @@ def zip_prefix(prefix: Path, out_zip: Path, arch: str) -> None:
     info = (
         f"TERMUX_PACKAGE_NAME={PACKAGE_NAME}\nTERMUX_ARCH={arch}\nTERMUX_MIN_API={'28' if arch == 'arm' else '21'}\n"
         "RAFCODEPHI_BOOTSTRAP=real-arm-core\nBOOTSTRAP_REAL_APT_READY=1\nBOOTSTRAP_REAL_DPKG_READY=1\n"
-        "BOOTSTRAP_REAL_PROOT_READY=1\nBOOTSTRAP_CA_CERTIFICATES_READY=1\nBOOTSTRAP_DNS_RESOLVER_READY=1\n"
+        "BOOTSTRAP_REAL_PROOT_READY=1\nBOOTSTRAP_REAL_COREUTILS_READY=1\nBOOTSTRAP_CA_CERTIFICATES_READY=1\n"
+        "BOOTSTRAP_DNS_RESOLVER_READY=1\nBOOTSTRAP_MINIMUM_COMMANDS_READY=1\n"
     )
     written: set[str] = set()
     with zipfile.ZipFile(out_zip, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
@@ -242,7 +348,22 @@ def write_manifest(out_dir: Path, arch: str, records: list[PackageRecord], zip_p
         "",
     ]
     lines.extend(f"- `{r.name}` `{r.version}` — `{r.filename}`" for r in records)
-    lines += ["", "## Binary prefix audit limitation", "", "- Text files are rewritten from legacy Termux prefix to RAFCODEΦ prefix.", "- Binary/non-UTF-8 files are never rewritten in-place because prefix lengths differ and that can corrupt ELF or data payloads.", "- `scripts/validate_real_arm_bootstrap_core.py` must pass with no `LEGACY_PREFIX_BINARY_RISK`; otherwise rebuild the affected package with the RAFCODEΦ prefix or use a safe compatibility strategy.", "", "## Required real-device promotion tests", ""]
+    lines += [
+        "",
+        "## Minimum command fallback",
+        "",
+        "- Missing command applets are filled with small wrappers that call `$PREFIX/bin/busybox <applet>` first and Android toybox/toolbox second.",
+        "- Real binaries from core packages are never overwritten by fallback wrappers.",
+        "",
+        "## Binary prefix audit limitation",
+        "",
+        "- Text files are rewritten from legacy Termux prefix to RAFCODEΦ prefix.",
+        "- Binary/non-UTF-8 files are never rewritten in-place because prefix lengths differ and that can corrupt ELF or data payloads.",
+        "- `scripts/validate_real_arm_bootstrap_core.py` must pass with no `LEGACY_PREFIX_BINARY_RISK`; otherwise rebuild the affected package with the RAFCODEΦ prefix or use a safe compatibility strategy.",
+        "",
+        "## Required real-device promotion tests",
+        "",
+    ]
     lines.extend(f"- `pkg install {pkg}` then `{pkg} --version` or package-specific version probe" for pkg in SMOKE_PACKAGES)
     (out_dir / f"real_arm_bootstrap_core_{arch}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
