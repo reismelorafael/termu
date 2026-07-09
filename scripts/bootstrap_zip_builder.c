@@ -26,6 +26,21 @@ static int valid_zip_path(const char* p){
   if(strstr(p,"..")!=NULL) return 0;
   return 1;
 }
+static int valid_package_name(const char* p){
+  if(!p||!p[0]) return 0;
+  int need_label=1;
+  int saw_dot=0;
+  for(const unsigned char* c=(const unsigned char*)p; *c; c++){
+    if((*c>='a'&&*c<='z')||(*c>='0'&&*c<='9')||*c=='_'){
+      if(need_label && !(*c>='a'&&*c<='z')) return 0;
+      need_label=0;
+      continue;
+    }
+    if(*c=='.' && !need_label){ saw_dot=1; need_label=1; continue; }
+    return 0;
+  }
+  return saw_dot && !need_label;
+}
 static int load_file(const char* root, const char* relative_path, uint8_t* out, uint32_t* n){
   if(!valid_zip_path(relative_path)) return -1;
   char path[512];
@@ -50,10 +65,12 @@ int main(int argc,char**argv){
   const char* payload_root=getenv("RAF_BOOTSTRAP_SRC_DIR");
   const char* min_api="21";
   if(!bootstrap_pkg||!bootstrap_pkg[0]) bootstrap_pkg="com.termux.rafacodephi";
+  if(!valid_package_name(bootstrap_pkg)) return 24;
   if(!page_size||!page_size[0]) page_size="16384";
   if(!payload_root||!payload_root[0]) payload_root="bootstrap_src/common";
-  if(snprintf(default_prefix,sizeof(default_prefix),"/data/data/%s/files/usr",bootstrap_pkg)<=0) return 22;
-  if(snprintf(compat_buf,sizeof(compat_buf),
+  int prefix_n=snprintf(default_prefix,sizeof(default_prefix),"/data/data/%s/files/usr",bootstrap_pkg);
+  if(prefix_n<=0||prefix_n>=(int)sizeof(default_prefix)) return 22;
+  int compat_n=snprintf(compat_buf,sizeof(compat_buf),
     "#!/system/bin/sh\n"
     "PREFIX=${PREFIX:-%s}\n"
     "status=0\n"
@@ -64,7 +81,8 @@ int main(int argc,char**argv){
     "[ -d \"$PREFIX/libexec\" ] && find \"$PREFIX/libexec\" -type f -exec chmod 700 {} \\; 2>/dev/null || true\n"
     "[ -d \"$PREFIX/lib/apt/methods\" ] && find \"$PREFIX/lib/apt/methods\" -type f -exec chmod 700 {} \\; 2>/dev/null || true\n"
     "[ -x \"$PREFIX/bin/sh\" ] && \"$PREFIX/bin/sh\" -c 'echo shell_exec_ok=1'\n"
-    "exit $status\n", default_prefix)<=0) return 23;
+    "exit $status\n", default_prefix);
+  if(compat_n<=0||compat_n>=(int)sizeof(compat_buf)) return 23;
   if(strcmp(abi,"arm")==0) min_api="28";
   int info_n=snprintf(info,sizeof(info),
     "TERMUX_PACKAGE_NAME=%s\nTERMUX_ARCH=%s\nTERMUX_PAGE_SIZE=%s\nTERMUX_MIN_API=%s\nRAFCODEPHI_BOOTSTRAP=local-ci\nBOOTSTRAP_UTILS_READY=1\nBOOTSTRAP_APKMANAGER_READY=1\nBOOTSTRAP_SHELLBASH_READY=1\nBOOTSTRAP_BUSYBOX_SAFE_READY=1\nBOOTSTRAP_PROOT_SAFE_READY=1\nBOOTSTRAP_COMPAT_HOTFIX_READY=1\nBOOTSTRAP_FULLENGINE_READY=1\nBOOTSTRAP_PATHS_VALIDATED=1\nBOOTSTRAP_PERMISSIONS_DECLARED=1\nBOOTSTRAP_COMMAND_WRAPPERS_READY=1\nBOOTSTRAP_BUSYBOX_PRESENT=1\nBOOTSTRAP_PROOT_PRESENT=1\n",
