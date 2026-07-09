@@ -37,6 +37,36 @@ RUNTIME_FILES = (
     "bin/proot-safe",
 )
 
+COMMAND_WRAPPER_FILES = (
+    "bin/cat",
+    "bin/ls",
+    "bin/clear",
+    "bin/grep",
+    "bin/sed",
+    "bin/awk",
+    "bin/head",
+    "bin/tail",
+    "bin/wc",
+    "bin/mkdir",
+    "bin/rm",
+    "bin/cp",
+    "bin/mv",
+    "bin/ln",
+    "bin/chmod",
+    "bin/pwd",
+    "bin/env",
+    "bin/which",
+    "bin/find",
+    "bin/tar",
+    "bin/gzip",
+    "bin/gunzip",
+    "bin/zcat",
+    "bin/stat",
+    "bin/strings",
+    "bin/file",
+    "bin/whoami",
+)
+
 
 def read(path: Path, errors: list[str]) -> str:
     if not path.exists():
@@ -88,6 +118,10 @@ def validate() -> list[str]:
         require(build_script, runtime_file, "bootstrap source generator", errors)
         require(builder, runtime_file, "bootstrap zip builder", errors)
 
+    for wrapper_file in COMMAND_WRAPPER_FILES:
+        require(build_script, wrapper_file, "explicit busybox command wrapper source", errors)
+        require(builder, wrapper_file, "explicit busybox command wrapper zip entry", errors)
+
     for marker in (
         "BOOTSTRAP_UTILS_READY=1",
         "BOOTSTRAP_APKMANAGER_READY=1",
@@ -96,6 +130,9 @@ def validate() -> list[str]:
         "BOOTSTRAP_PROOT_SAFE_READY=1",
         "RUNTIME_READY=1",
         "BOOTSTRAP_PACKAGE_INSTALLABLE=1",
+        "BOOTSTRAP_COMMAND_WRAPPERS_READY=1",
+        "BOOTSTRAP_EXPLICIT_APPLET_WRAPPERS=1",
+        "EXPLICIT_APPLET_WRAPPERS_READY=1",
         "SYMLINKS.txt",
         "raf-bootstrap-sh",
     ):
@@ -139,6 +176,7 @@ def main() -> int:
     print("native_incbin=rewritten_bootstrap_packages_declared")
     print("gradle_version_helpers=present_and_safe")
     print("existing_bootstrap_environment_init=application_startup_guarded")
+    print("explicit_busybox_command_wrappers=present")
     return 0
 
 
