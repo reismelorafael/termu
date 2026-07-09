@@ -135,14 +135,17 @@ if [ $# -eq 0 ]; then
 fi
 applet="$1"
 shift
-if command -v toybox >/dev/null 2>&1; then
-    exec toybox "$applet" "$@"
+if [ -x /system/bin/toybox ]; then
+    exec /system/bin/toybox "$applet" "$@"
 fi
-if command -v toolbox >/dev/null 2>&1; then
-    exec toolbox "$applet" "$@"
+if [ -x /system/bin/toolbox ]; then
+    exec /system/bin/toolbox "$applet" "$@"
 fi
-if command -v "$applet" >/dev/null 2>&1; then
-    exec "$applet" "$@"
+if [ -x /system/bin/"$applet" ]; then
+    exec /system/bin/"$applet" "$@"
+fi
+if [ -x /system/xbin/"$applet" ]; then
+    exec /system/xbin/"$applet" "$@"
 fi
 echo "no backend for busybox applet: ${applet}" >&2
 exit 127
