@@ -242,7 +242,7 @@ def write_manifest(out_dir: Path, arch: str, records: list[PackageRecord], zip_p
         "",
     ]
     lines.extend(f"- `{r.name}` `{r.version}` — `{r.filename}`" for r in records)
-    lines += ["", "## Required real-device promotion tests", ""]
+    lines += ["", "## Binary prefix audit limitation", "", "- Text files are rewritten from legacy Termux prefix to RAFCODEΦ prefix.", "- Binary/non-UTF-8 files are never rewritten in-place because prefix lengths differ and that can corrupt ELF or data payloads.", "- `scripts/validate_real_arm_bootstrap_core.py` must pass with no `LEGACY_PREFIX_BINARY_RISK`; otherwise rebuild the affected package with the RAFCODEΦ prefix or use a safe compatibility strategy.", "", "## Required real-device promotion tests", ""]
     lines.extend(f"- `pkg install {pkg}` then `{pkg} --version` or package-specific version probe" for pkg in SMOKE_PACKAGES)
     (out_dir / f"real_arm_bootstrap_core_{arch}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 

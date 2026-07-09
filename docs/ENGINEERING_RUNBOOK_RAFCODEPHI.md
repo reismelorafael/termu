@@ -27,9 +27,13 @@ Para gerar o core ARM real antes de promover `TOKEN_VAZIO` para `PROVADO`:
 
 ```bash
 ./scripts/build_real_arm_bootstrap_core.py --arch all
-./scripts/validate_real_arm_bootstrap_core.py app/src/main/cpp/rewritten-bootstrap-aarch64.zip app/src/main/cpp/rewritten-bootstrap-arm.zip
+python3 scripts/validate_real_arm_bootstrap_core.py \
+  app/src/main/cpp/rewritten-bootstrap-aarch64.zip \
+  app/src/main/cpp/rewritten-bootstrap-arm.zip
 DEVICE_SMOKE_REQUIRED=true ./scripts/device_runtime_smoke.sh path/to/app.apk
 ```
+
+A validação do ZIP é obrigatória antes do device smoke. Falha `LEGACY_PREFIX_BINARY_RISK` bloqueia promoção: ela significa prefix legado dentro de arquivo binário/non-UTF-8, sem replace automático seguro; o pacote afetado deve ser reconstruído com prefix RAFCODEΦ ou coberto por estratégia de compatibilidade segura.
 
 Promoção permitida somente depois de passar, em dispositivo real:
 
